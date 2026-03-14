@@ -1,0 +1,12 @@
+{
+  "name": "joudo",
+  "private": true,
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @joudo/bridge --filter @joudo/web dev",
+    "dev:bridge": "corepack pnpm --filter @joudo/bridge dev",
+    "dev:web": "corepack pnpm --filter @joudo/web dev",
+    "typecheck": "corepack pnpm --recursive --filter @joudo/shared --filter @joudo/bridge --filter @joudo/web typecheck",
+    "build": "corepack pnpm typecheck && corepack pnpm --filter @joudo/web build"
+  }
+}

@@ -2,10 +2,16 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
-import "./styles.css";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { BridgeProvider } from "./hooks/BridgeContext";
+import "./styles/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <BridgeProvider>
+        <App />
+      </BridgeProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

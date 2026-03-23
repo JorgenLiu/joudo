@@ -1,0 +1,253 @@
+/* ===== Shared panel & card styles ===== */
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.sectionHeader span,
+.metaBlock small,
+.emptyState,
+.summaryList dt,
+.repoCard em,
+.repoCard span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.emptyState {
+  margin: 0;
+}
+
+/* ===== Prompt ===== */
+
+.promptForm {
+  display: grid;
+  gap: 8px;
+}
+
+.promptForm textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 90px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-input);
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.promptForm textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.promptForm button,
+.approvalActions button {
+  padding: 7px 14px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.82rem;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.promptForm button:hover:not(:disabled),
+.approvalActions button:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.promptForm button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ===== Approval ===== */
+
+.approvalPanel,
+.policyPanel,
+.summaryCard,
+.metaBlock,
+.authPanel,
+.instructionPanel,
+.timelinePanel,
+.validationPanel,
+.sessionHistoryPanel {
+  padding: 12px;
+}
+
+.approvalCard,
+.summaryCard,
+.metaBlock,
+.authGuide,
+.instructionBlock,
+.timelineEntry,
+.sessionHistoryCard,
+.validationCard,
+.validationScenario {
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+/* ===== Status tags ===== */
+
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid rgba(0, 122, 204, 0.25);
+}
+
+.statusTag.awaiting-approval,
+.statusTag.interrupted,
+.statusTag.timed-out {
+  background: var(--warning-subtle);
+  color: var(--warning);
+  border-color: rgba(204, 167, 0, 0.25);
+}
+
+.statusTag.high {
+  background: var(--danger-subtle);
+  color: var(--danger);
+  border-color: rgba(241, 76, 76, 0.25);
+}
+
+.statusTag.low {
+  background: var(--success-subtle);
+  color: var(--success);
+  border-color: rgba(78, 201, 176, 0.25);
+}
+
+.statusTag.medium {
+  background: var(--warning-subtle);
+  color: var(--warning);
+  border-color: rgba(204, 167, 0, 0.25);
+}
+
+.statusTag.recovering {
+  background: var(--info-subtle);
+  color: var(--info);
+  border-color: rgba(117, 190, 255, 0.2);
+}
+
+
+/* ===== Buttons ===== */
+
+.secondaryButton {
+  padding: 5px 12px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--bg-input);
+  border-color: var(--text-muted);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ghostButton {
+  padding: 4px 8px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  transition: color 120ms ease;
+}
+
+.ghostButton:hover {
+  color: var(--ink);
+}
+
+.compactTextWrap {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.compactTextMono {
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  overflow-wrap: anywhere;
+}
+
+.compactToggle {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.compactToggle:hover {
+  color: var(--ink);
+}
+
+
+/* ===== Focus-visible ring ===== */
+
+.promptForm textarea:focus-visible,
+.instructionNotes:focus-visible,
+.repoSelector select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+
+button:focus-visible,
+.secondaryButton:focus-visible,
+.ghostButton:focus-visible,
+.compactToggle:focus-visible,
+.tabBarItem:focus-visible,
+.headerRefreshBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
+
+.approvalDenyBtn:focus-visible,
+.approvalPersistBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+

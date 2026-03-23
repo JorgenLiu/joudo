@@ -1,126 +1,133 @@
-# Joudo 首次配置与登录引导
+# Joudo 上手
 
-## 目标
+## 适用范围
 
-Joudo 不应该要求用户理解 Copilot CLI 的内部实现，才能完成第一次可用配置。
+这份文档面向当前仓库的开发与演示环境，不是最终用户安装手册。
 
-对普通用户来说，最合理的首登流程应该是：
+## 前置条件
 
-1. 在自己的电脑上安装并启动 Joudo。
-2. 如果网页提示 Copilot 尚未登录，就在本机终端执行 `copilot login`。
-3. 按照 Copilot CLI 的浏览器授权流程完成登录。
-4. 回到 Joudo 网页，点击“重新检查登录状态”。
-5. 看到“Copilot CLI 已就绪”后，再开始发送提示词。
+需要满足：
 
-## 为什么终端会一直停在 Waiting for authorization..
+- macOS 本机可运行 GitHub Copilot CLI
+- 已安装 Node.js 与 Corepack
+- 可以使用 `pnpm`
+- Copilot CLI 已可登录
 
-这是 Copilot CLI 的 OAuth device flow 正常行为。
+## 安装依赖
 
-从已安装的 CLI 实现看，终端在拿到 device code 之后会进入后台轮询，等待 GitHub 返回 access token。在这段时间里，CLI 不会持续打印新的进度日志，通常就停在：
+在仓库根目录执行：
 
-```text
-Waiting for authorization..
+```bash
+corepack pnpm install
 ```
 
-所以：
+如果安装依赖遇到网络问题，在当前 shell 里执行：
 
-- 终端没有继续输出，不等于它卡死了。
-- “在网页里输入 code”也不等于整个授权已经完成。
-- 只有在浏览器里最终确认授权后，CLI 轮询才会结束，并在终端返回成功结果。
+```bash
+source ~/.zshrc
+proxyon
+corepack pnpm install
+```
 
-如果它长时间停在这里，优先排查这几件事：
+## 启动开发环境
 
-1. 浏览器里是否只是输入了 code，但还没有点最终的授权确认。
-2. 当前登录的 GitHub 账号是否真的有 Copilot CLI 可用权限。
-3. 是否登录到了错误的 GitHub host，例如企业实例和 github.com 混用。
-4. 网络是否阻断了 CLI 对 GitHub 认证接口的轮询。
+启动 bridge 和 web：
 
-对 Joudo 来说，最稳的做法是等终端登录命令结束后，再回到网页点击“重新检查登录状态”。
+```bash
+corepack pnpm dev
+```
 
-## 为什么不需要我们自己做“跨 shell 保存”
+也可以分别启动：
 
-`copilot login --help` 已经说明了默认行为：
+```bash
+corepack pnpm dev:bridge
+corepack pnpm dev:web
+```
 
-- 优先把认证令牌保存在系统 credential store 中。
-- 如果系统没有可用的 credential store，才回退到 `~/.copilot/` 下的明文配置文件。
+默认端口：
 
-这意味着在同一个操作系统用户下：
+- Web: `http://localhost:5173`
+- Bridge: `http://localhost:8787`
 
-- 新开的终端窗口可以直接复用登录状态。
-- Joudo bridge 重启后仍然可以读取登录状态。
-- 重新打开网页或重启应用后，bridge 仍然能查询到登录状态。
+## 登录 Copilot CLI
 
-所以“登录状态跨 shell 持久化”确实是需求，但它本来就是 Copilot CLI 默认提供的能力。Joudo 不应该再额外发明一套认证持久化机制；我们只需要做两件事：
+如果网页显示 Copilot 未登录，在宿主机终端执行：
 
-- 在 bridge 启动和用户点击刷新时查询一次认证状态。
-- 在网页里给出明确的下一步引导。
+```bash
+copilot login
+```
 
-## 什么时候会失去这种持久化
+完成授权后，回到网页点击“重新检查登录状态”。
 
-主要有两种情况：
+## 当前推荐体验路径
 
-1. 用户改用环境变量令牌，例如 `COPILOT_GITHUB_TOKEN`、`GH_TOKEN`、`GITHUB_TOKEN`。
-2. 用户显式指定了不同的 `--config-dir`，导致不同进程使用不同的 Copilot 配置目录。
+1. 打开网页
+2. 选择一个受信任仓库
+3. 检查 Repo Context 与 Repo Policy 面板
+4. 发送一条会触发真实权限请求的 prompt
+5. 在审批区处理权限请求
+6. 查看摘要、活动视图、时间线和历史会话
 
-第一种更适合 CI 或无头自动化，不适合 Joudo 面向普通人的默认体验。因为环境变量天然是进程级或 shell 级的，不保证新开的终端和重启后的 bridge 还能继续拿到同一份令牌。
+## 当前常用验证命令
 
-## 我们应该把它当成需求吗
+全量类型检查：
 
-应该，而且是基础需求，不是可选增强。
+```bash
+corepack pnpm typecheck
+```
 
-原因不是“用户可能会开两个 shell”这么简单，而是：
+bridge 测试：
 
-- Joudo 的网页、bridge 和用户执行 `copilot login` 的终端，本来就是不同进程。
-- bridge 未来会重启，用户也会刷新页面或重开浏览器。
-- 只要登录状态不能跨进程复用，产品第一次用起来就会很别扭。
+```bash
+corepack pnpm --filter @joudo/bridge test
+```
 
-但这项需求的正确实现位置在 Copilot CLI 侧，不在 Joudo 侧。Joudo 要做的是检测、提示和恢复，而不是自己保管令牌。
+web 测试：
 
-## 面向其他用户的推荐引导方案
+```bash
+corepack pnpm --filter @joudo/web test
+```
 
-如果这个应用要给别人在他们自己的电脑上使用，推荐的 onboarding 方案应该尽量短：
+live policy 回归：
 
-1. 安装 Node.js 和 Joudo 依赖。
-2. 启动 Joudo。
-3. 网页检测到未登录时，显示 `copilot login` 命令和三步操作说明。
-4. 用户在本机终端完成授权。
-5. 网页点击“重新检查登录状态”，通过 bridge 查询 Copilot SDK 的 auth status。
-6. 登录成功后才开放真正的会话操作。
+```bash
+corepack pnpm validate:policy-live
+```
 
-这套流程的优点是：
+## 当前策略模板
 
-- 不需要我们处理 OAuth 回调。
-- 不需要网页直接接触用户令牌。
-- 不依赖某一个固定终端窗口必须一直开着。
-- 和 Copilot CLI 官方支持的登录方式保持一致。
+推荐起始模板位于：
 
-## 共享电脑上的边界
+- `docs/examples/joudo-policy.recommended.yml`
 
-如果是“别的人来用”，这里要区分两种场景。
+如果要在目标 repo 上启用 policy，优先复制到：
 
-### 每个人在自己的电脑上使用
+- `.github/joudo-policy.yml`
 
-这是最推荐的模式。每台电脑各自执行一次 `copilot login` 即可，认证状态由该机器本地保存。
+## 当前模型选择
 
-### 多个人共用同一台电脑、同一个系统账户
+开发阶段默认模型是 `gpt-5-mini`。
 
-不推荐这样做。
+Web UI 现在会直接显示并切换当前 repo 的执行模型；切换会写回 bridge 当前上下文，并在下一条提示词生效。
 
-因为 Copilot 登录状态默认绑定在当前系统用户的 credential store 或 `~/.copilot/` 下。多人共用同一个 macOS 账户，会让认证边界和审计边界都变得模糊。
+bridge 会优先通过 Copilot SDK 运行时探测可用模型列表；只有探测失败时，才回退到环境变量里的静态列表。
 
-更合理的做法是：
+如果要切换模型，可在启动 bridge 前设置：
 
-- 每个使用者使用独立的操作系统账户。
-- 或者至少为不同 profile 使用不同的 `--config-dir` 和独立的 Joudo bridge 进程。
+```bash
+JOUDO_MODEL=gpt-5.4 corepack pnpm --filter @joudo/bridge dev
+```
 
-对 Joudo MVP 来说，建议明确按“单机单用户”建模，不要提前承诺同一系统账户下的多租户支持。
+如果要显式提供可选模型列表，可额外设置：
 
-## 产品侧下一步建议
+```bash
+JOUDO_AVAILABLE_MODELS=gpt-5-mini,gpt-5.4,gpt-5 corepack pnpm --filter @joudo/bridge dev
+```
 
-Joudo 后续在登录引导上至少应做到：
+这个变量现在主要作为兜底配置，而不是前端模型列表的唯一来源。
 
-1. 未登录时，在网页直接显示 `copilot login` 指令和说明。
-2. 提供“重新检查登录状态”按钮，而不是要求用户刷新整个页面。
-3. 在 bridge 启动时主动查询 Copilot auth 状态。
-4. 对“已登录但会话创建失败”和“未登录”给出不同错误文案。
-5. 后续如果要支持共享机器，再单独设计 profile 和 `config-dir` 方案。
+## 当前边界
+
+- 这是开发态工作流，不是最终安装包形态
+- 当前体验依赖本机运行 bridge
+- 当前恢复与 rollback 仍然是受控能力，不是强一致事务系统

@@ -1,0 +1,225 @@
+/* ===== Instruction ===== */
+
+.instructionPanel {
+  display: grid;
+  gap: 8px;
+}
+
+.instructionBlock {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+}
+
+.instructionReadonly {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.instructionNotes {
+  width: 100%;
+  resize: vertical;
+  min-height: 90px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-input);
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+.instructionNotes:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.instructionActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ===== Session History ===== */
+
+.sessionHistoryPanel {
+  margin-top: 0;
+}
+
+.sessionHistoryList {
+  display: grid;
+  gap: 6px;
+}
+
+.sessionHistoryCard {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+}
+
+.sessionHistoryCard p,
+.sessionHistoryCard small,
+.sessionHistoryCard strong {
+  margin: 0;
+}
+
+.sessionHistoryCard strong {
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.sessionHistoryCard small {
+  font-size: 0.8rem;
+}
+
+.sessionHistoryNote {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.sessionHistoryActions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 3px;
+}
+
+.sessionHistoryHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+
+/* ===== Auth ===== */
+
+.authGuide {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.authGuide p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.authGuide code {
+  display: block;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  color: var(--success);
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+}
+
+.authFootnote {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.authActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.authActions button {
+  padding: 7px 14px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 0.82rem;
+  transition: background 120ms ease;
+}
+
+.authActions button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.authActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* ===== Timeline ===== */
+
+.timelinePanel {
+  margin-top: 0;
+}
+
+.timelineList {
+  display: grid;
+  gap: 6px;
+}
+
+.timelineEntry {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+}
+
+.timelineEntry p,
+.timelineEntry strong {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.timelineMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.timelineEntry.prompt {
+  border-color: rgba(78, 201, 176, 0.35);
+}
+
+.timelineEntry.assistant {
+  border-color: rgba(78, 201, 176, 0.5);
+}
+
+.timelineEntry.approval-requested,
+.timelineEntry.approval-resolved {
+  border-color: rgba(204, 167, 0, 0.35);
+}
+
+.timelineEntry.error {
+  border-color: rgba(241, 76, 76, 0.35);
+}
+
+
+/* ===== Auth FAQ collapsible ===== */
+
+.authFaqCollapsible {
+  border: none;
+  background: transparent;
+}
+
+.authFaqCollapsible > summary {
+  padding: 6px 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.authFaqContent {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0;
+}
+

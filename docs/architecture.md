@@ -1,191 +1,184 @@
 # Joudo 架构
 
-## 项目目标
-
-Joudo 是 GitHub Copilot CLI 的一个本地优先、网页优先的移动访问伴侣产品。
-
-它的产品目标很简单：
-
-- 让手机先通过浏览器充当 Copilot 的聊天 UI，而真正运行编码代理的是同一局域网内的一台 Mac。
-- 将网页端的提示词转发给 Copilot CLI。
-- 把代理进度、工具审批请求和最终回答流式返回到网页客户端。
-- 提供简洁摘要，而不是直接倾倒原始终端噪音。
-
 ## 产品定位
 
-Joudo 应被视为 Copilot CLI 的专用前端，而不是远程桌面应用，也不是终端镜像工具。
+Joudo 是 GitHub Copilot CLI 的本地优先、网页优先移动访问前端。
 
-MVP 阶段优先交付移动优先网页客户端；原生 App 只在网页工作流稳定后再做封装。
+当前产品形态不是远程桌面，也不是终端镜像，而是：
 
-这意味着：
+- 一个位于 Mac 本机的 bridge
+- 一个移动优先的 Web UI
+- 一套 repo-scoped 的策略、审批、摘要、恢复与回退模型
 
-- 网页客户端绝不能通过抓取或 OCR 解析终端 UI。
-- Mac 端应暴露一个受控的桥接服务。
-- Copilot CLI 仍然是实际的编码引擎。
-- 桥接层应把移动端交互转换为结构化的 Copilot 会话。
+MVP 的目标是让用户在同一局域网内通过手机浏览器安全地使用本机 Copilot CLI，而不是直接暴露一台拥有宽权限的远程 shell。
 
-## 推荐集成模型
+## 顶层组件
 
-首选的集成方式是以 ACP 模式运行 GitHub Copilot CLI。
+### Web 客户端
 
-ACP 之所以是正确基础，原因在于：
+位置：`apps/web`
 
-- Copilot CLI 官方支持编程式调用。
-- Copilot CLI 可以通过 `copilot --acp --stdio` 或 TCP 模式运行成 ACP 服务端。
-- ACP 提供结构化会话事件、流式输出以及权限请求。
-- 这能避免脆弱的 PTY 解析，也避免与终端 UI 实现细节耦合。
+职责：
 
-程序化的 `copilot -p` 模式对一次性任务仍然有用，但它不适合作为持久化移动聊天工作流的主接口。
+- 选择仓库
+- 发送 prompt
+- 展示审批队列
+- 展示摘要、时间线、活动视图和历史会话
+- 展示 repo policy 摘要，包括 `allowed_write_paths`
 
-## 系统组件
+当前 UI 已经是结构化界面，不依赖 Copilot CLI 的终端输出解析。
 
-### 1. Web 客户端
+### Bridge
 
-移动优先网页客户端负责提供：
+位置：`apps/bridge`
 
-- 聊天界面
-- 仓库与会话选择器
-- 风险操作审批卡片
-- 精简响应视图
-- 可选的完整转录展开视图
+职责：
 
-它应能直接从手机浏览器访问，并为后续原生 App 封装保留清晰边界。
+- 发现可用仓库并维护 repo-scoped state
+- 启动、附着、恢复 Copilot 会话
+- 评估权限请求并执行 allow / confirm / deny
+- 持久化审批结果、摘要、时间线、rollback 证据和历史索引
+- 将结构化 snapshot 通过 HTTP 和 WebSocket 提供给前端
 
-网页客户端不应直接执行 shell 命令，也不应持有超出桥接令牌范围的长期仓库凭证。
+Bridge 是当前产品的控制平面。
 
-### 2. Mac 桥接服务
+### Shared 协议层
 
-桥接层是整个系统的控制平面核心。
+位置：`packages/shared`
 
-职责包括：
+职责：
 
-- 对网页客户端进行身份验证
-- 管理局域网传输
-- 按仓库创建和恢复 Copilot 会话
-- 将仓库策略映射为 Copilot CLI 启动参数和运行时审批决策
-- 持久化转录、摘要和审计事件
-- 为网页 UI 清洗并总结 Copilot 输出
+- 定义前后端共享类型
+- 约束 session snapshot、approval payload、timeline、activity、policy 摘要等结构
 
-MVP 推荐技术栈：
+当前前端不需要自行推断 bridge 内部状态，主要依赖 shared 协议中的结构化对象。
 
-- Node.js 或 TypeScript 服务
-- 使用 WebSocket 传输流式事件
-- 使用 HTTP 端点处理会话管理和审批请求
-- 使用 ACP 客户端 SDK 与 Copilot CLI 通信
+## 会话模型
 
-### 3. Copilot Worker
+Joudo 的核心会话是 repo-scoped，而不是 editor-global。
 
-对于每个活动中的仓库会话，桥接层都应启动或附着到一个独立的 Copilot 进程。
+每个 repo 上维护一份 `RepoContext`，包含：
 
-推荐启动方式：
+- 当前 policy 与 policy 状态
+- 当前 Copilot session 引用
+- prompt、timeline、summary、activity
+- pending approvals 与 audit log
+- 历史会话索引与当前 session snapshot
+- rollback 所需的 turn evidence、write journal 和 tracked scope
 
-```bash
-copilot --acp --stdio
-```
+Joudo 自己维护产品级 session 和 turn 边界，不把 Copilot CLI 的内部会话语义直接当成产品真相来源。
 
-会话状态应按仓库隔离，并跟踪：
+## 权限与策略模型
 
-- 当前工作目录
-- 当前分支
-- 当前 Copilot 会话 id
-- 当前模型
-- 排队中的提示词
-- 待处理的权限请求
+策略文件位于目标 repo 的 `.github/` 下，当前支持：
 
-### 4. 仓库策略层
+- `allow_tools`
+- `deny_tools`
+- `confirm_tools`
+- `allow_shell`
+- `deny_shell`
+- `confirm_shell`
+- `allowed_paths`
+- `allowed_write_paths`
+- `allowed_urls`
 
-每个仓库都应携带自己的策略文件，用来定义 Joudo 可以自动批准哪些行为。
+运行时权限决策分三类：
 
-这套策略并不是 Copilot CLI 权限系统的替代品，而是更高一层的控制层，会编译为：
+- 自动允许
+- 自动拒绝
+- 转为网页审批
 
-- Copilot CLI 启动参数
-- ACP 权限决策
-- Joudo UI 的确认要求
+网页审批当前支持三种动作：
 
-## 会话流程
+- 拒绝
+- 允许本次
+- 允许并加入 policy
 
-1. 用户在网页客户端上选择一个仓库。
-2. 桥接层校验该仓库是否受信任，并确认存在策略文件。
-3. 桥接层启动或恢复一个以该仓库为根目录的 Copilot ACP 会话。
-4. 用户从网页端发送提示词。
-5. 桥接层将提示词转发给 ACP 会话。
-6. Copilot 持续输出流式更新。
-7. 如果 Copilot 请求某项工具权限，桥接层就评估策略。
-8. 桥接层根据结果自动批准、自动拒绝，或向网页端发出审批请求。
-9. 桥接层存储转录记录、命令日志、文件变更列表和面向用户的摘要。
-10. 网页端展示最终结果，并允许用户按需展开细节。
+“允许并加入 policy”当前覆盖：
 
-## 摘要策略
+- shell 请求，写入 `allow_shell`
+- read 请求，写入 `allowed_paths`
+- 受控 write 请求，写入 `allowed_write_paths`
 
-网页端默认不应接收所有原始事件。
+write 的持久化边界被刻意收紧，只允许：
 
-相反，桥接层应产出一个结构化结果对象，例如：
+- 明确单文件路径
+- `generated` / `__generated__` 目录
 
-- 最终回答
-- 实际执行过的关键命令
-- 变更过的文件
-- 运行过的测试或检查
-- 尚未解决的风险或阻塞点
-- 建议的下一步动作
+## 审批与审计模型
 
-原始转录可以放在“展开细节”视图之后按需查看。
+Joudo 不只记录“批准了没有”，还会记录：
 
-## 为什么不做 PTY/TUI 镜像
+- 审批类型 `approvalType`
+- policy 决策结果和命中规则
+- 是否写入 policy
+- 自动决策还是用户决策
 
-这个项目不应建立在终端抓取之上。
+这些信息会进入：
 
-原因包括：
+- approval queue
+- timeline
+- summary
+- audit log
 
-- 终端 UI 变化频繁
-- 这类输出是为人设计的，不是为机器设计的
-- 权限提示会变得难以可靠分类
-- 状态回放和摘要提取会非常脆弱
-- 安全边界也更难推理清楚
+因此用户可以回看“这一轮到底放行了什么”和“哪些权限已经被持久化”。
 
-ACP 提供了清晰得多的契约。
+## 非 git 工作区变更与回退模型
 
-## 安全边界
+当前 rollback authority 在 Joudo，不在 Copilot CLI。
 
-Joudo 必须假设：如果没有额外限制，Copilot 将以当前 Mac 用户账户的实际权限行动。
+Joudo 当前采用混合证据模型：
 
-因此：
+- prompt 开始时建立 turn-scoped baseline
+- 对 write tool 和 shell possible paths 收集 candidate paths
+- 运行期间 watcher 只负责发现候选范围之外的越界写入
+- 对 write tool 可见写入记录 write journal
+- rollback 时优先依赖 Joudo 自己的证据来判断是否还能安全恢复
 
-- 绝不能把用户 home 目录当作受信任根目录
-- 只信任明确选定的仓库
-- 避免使用宽泛的 `--allow-all`
-- 对危险的 shell 命令家族优先采用默认拒绝
-- 对联网和破坏性操作要求显式审批
-- 对审批和命令执行保留审计轨迹
+当前边界：
 
-## MVP 范围
+- 只支持“上一轮整体回退”
+- `/undo` 仍然是一个底层执行器，不是真相来源
+- 如果 watcher 发现越界写入或当前工作区与记录状态漂移，rollback 会降级为 `needs-review`
 
-一个务实的首版应包含：
+## 持久化模型
 
-- 单用户局域网访问
-- 在 Mac 上手动选择仓库
-- 按仓库配置的策略文件
-- 基于 ACP 的会话
-- 移动优先网页客户端
-- 流式聊天输出
-- 针对高风险工具的审批流程
-- 基础摘要卡片
+当前 repo-scoped 持久化位于目标仓库的 `.joudo/` 下。
 
-v1 中应避免加入：
+第一阶段的事实来源包括：
 
-- 公网访问
-- 多租户
-- 云端后台中继
-- 终端模拟
-- 语音输入
+- `.joudo/repo-instructions.md`
+- `.joudo/sessions-index.json`
+- `.joudo/sessions/<id>/snapshot.json`
 
-## 后续扩展
+这些持久化对象服务于：
 
-未来可以考虑加入：
+- 历史会话列表
+- history-only 恢复
+- repo context 自动生成
+- 最近一次 turn 的 rollback 判断
 
-- 原生 App 封装
-- iOS 快捷指令或 Siri 集成
-- 任务完成通知
-- 按仓库检索历史会话
-- 安全的后台任务委派
-- 在手机上预览 diff 并审批的流程
-- 面向不受信任仓库的可选沙箱执行器
+## 恢复模型
+
+当前恢复分两类：
+
+- `attach`：对已完成且仍有机会附着的历史会话做 best-effort attach
+- `history-only`：只恢复结构化历史上下文，不把旧审批当成仍可操作的实时请求
+
+恢复的重点是保留事实与解释能力，而不是承诺对任何旧会话做强一致继续执行。
+
+## 当前架构结论
+
+当前 Joudo 已经具备一条闭环：
+
+- Web 输入 prompt
+- Bridge 驱动真实 Copilot 会话
+- Policy 决策和网页审批接管权限请求
+- Summary / Timeline / Activity 提供结构化解释
+- Repo policy 支持从审批结果反向增量写回
+
+下一阶段的重点不再是“有没有跑通”，而是：
+
+- 继续收紧策略边界
+- 继续提高 rollback 与恢复的解释性
+- 继续把当前能力收敛成更稳定的产品面

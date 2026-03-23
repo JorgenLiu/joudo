@@ -1,0 +1,259 @@
+/* ===== Summary ===== */
+
+.summaryCard h3 {
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.summaryOutcomeHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.summaryOutcomeHeader p,
+.summaryHero p,
+.summaryHero strong {
+  margin: 0;
+}
+
+.summaryOutcomeHeader p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.summaryHero {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  margin-top: 8px;
+}
+
+.summaryHero strong {
+  color: var(--ink);
+}
+
+.summaryStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.summaryStats article {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+}
+
+.summaryStats span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summaryStats strong {
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.summaryList {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.summaryList div {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.summaryList dt {
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summaryList dd {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.summaryPillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.summaryPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  font-size: 0.8rem;
+}
+
+.summaryEmptyLabel {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.nextAction {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  border: 1px solid rgba(0, 122, 204, 0.2);
+}
+
+.metaBlock {
+  margin-top: 8px;
+  display: grid;
+  gap: 2px;
+  font-size: 0.82rem;
+}
+
+
+/* ===== Summary preview (Console tab) ===== */
+
+.summaryPreviewCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  color: inherit;
+}
+
+.summaryPreviewCard:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.08);
+}
+
+.summaryPreviewHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.summaryPreviewHeader strong {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.summaryPreviewBody {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.summaryPreviewLink {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+
+/* ===== Summary body formatting ===== */
+
+.summaryBody {
+  display: grid;
+  gap: 6px;
+}
+
+.summaryBodyParagraph {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.mdInlineCode {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  color: var(--success);
+}
+
+.mdCodeBlock {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.mdHeading {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.mdList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.mdList li {
+  margin-bottom: 2px;
+}
+
+.mdLink {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.mdLink:hover {
+  text-decoration: underline;
+}
+
+
+/* ===== Summary inline badge ===== */
+
+.summaryInlineBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+

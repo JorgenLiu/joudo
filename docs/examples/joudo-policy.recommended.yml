@@ -1,0 +1,78 @@
+version: 1
+trusted: true
+
+allow_shell:
+  - git status
+  - git diff
+  - git log
+  - git show
+  - git branch
+  - git rev-parse
+  - git ls-files
+  - rg
+  - ls
+  - cat
+  - head
+  - tail
+  - pwd
+  - which
+  - wc
+  - python --version
+  - python3 --version
+  - pip --version
+  - pip3 --version
+  - node --version
+  - npm --version
+  - pnpm --version
+  - pnpm test
+  - pnpm lint
+  - pnpm typecheck
+  - npm test
+  - npm run lint
+  - npm run typecheck
+  - yarn test
+  - yarn lint
+  - yarn typecheck
+  - python -m pytest
+  - python3 -m pytest
+  - pytest -q
+  - ruff check
+  - mypy
+  - tsc --noEmit
+
+confirm_shell:
+  - pnpm add
+  - pnpm install
+  - npm install
+  - npm update
+  - yarn add
+  - yarn install
+  - pip install
+  - pip3 install
+  - uvicorn
+  - git checkout
+  - git switch
+
+deny_shell:
+  - rm
+  - sudo
+  - ssh
+  - scp
+  - rsync
+  - osascript
+  - git push
+  - gh pr merge
+
+allowed_paths:
+  - .
+  - ./src
+  - ./tests
+  - ./app
+
+allowed_write_paths:
+  - ./src/generated
+  - ./app/generated
+
+allowed_urls:
+  - github.com
+  - api.github.com

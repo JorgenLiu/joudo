@@ -1,0 +1,104 @@
+/* ===== Confirm Dialog (shadcn AlertDialog style) ===== */
+
+.confirmDialog {
+  border: none;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 0;
+  max-width: min(400px, calc(100vw - 32px));
+  width: 100%;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.35),
+    0 0 0 1px var(--panel-border);
+  animation: dialogFadeIn 150ms ease;
+}
+
+.confirmDialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  animation: backdropFadeIn 150ms ease;
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirmDialogContent {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.confirmDialogTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.confirmDialogDescription {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.confirmDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.confirmDialogCancel {
+  padding: 8px 16px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background 120ms ease;
+}
+
+.confirmDialogCancel:hover {
+  background: var(--bg-input);
+}
+
+.confirmDialogConfirm {
+  padding: 8px 16px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background 120ms ease;
+}
+
+.confirmDialogConfirm:hover {
+  background: var(--accent-hover);
+}
+
+.confirmDialogConfirm.danger {
+  background: var(--danger);
+}
+
+.confirmDialogConfirm.danger:hover {
+  background: #d93a3a;
+}

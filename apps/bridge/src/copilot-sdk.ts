@@ -1,12 +1,12 @@
 export {
   CopilotClient,
-  approveAll,
-  defineTool,
-} from "../node_modules/@github/copilot/copilot-sdk/index.js";
+} from "@github/copilot-sdk";
 
 export type {
   CopilotSession,
   PermissionRequest,
   PermissionRequestResult,
+  ResumeSessionConfig,
+  SessionConfig,
   SessionEvent,
-} from "../node_modules/@github/copilot/copilot-sdk/index.js";
+} from "@github/copilot-sdk";

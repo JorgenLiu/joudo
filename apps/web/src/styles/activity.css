@@ -1,0 +1,255 @@
+/* ===== Activity ===== */
+
+.activityPanel {
+  margin-top: 0;
+}
+
+.activityCard {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.activityHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.activityHeader strong,
+.activityHeader p,
+.activityItem strong,
+.activityItem p,
+.activityBlocker strong,
+.activityBlocker p,
+.activityBlocker small {
+  margin: 0;
+}
+
+.activityMetaList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.activityMetaList div {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.activityMetaList dt {
+  margin-bottom: 2px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.activityMetaList dd {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.activityPathValue {
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+}
+
+.activityCheckpointSection {
+  display: grid;
+  gap: 6px;
+}
+
+.activitySubsectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: center;
+}
+
+.activitySubsectionHeader strong,
+.activitySubsectionHeader span,
+.activityCheckpointCard strong,
+.activityCheckpointCard p {
+  margin: 0;
+}
+
+.activitySubsectionHeader span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.activityCheckpointList {
+  display: grid;
+  gap: 6px;
+}
+
+.activityCheckpointCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(78, 201, 176, 0.25);
+  background: var(--success-subtle);
+}
+
+.activityCheckpointHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.activityCheckpointCard p {
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+}
+
+.activityCheckpointActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.activityCheckpointActions button,
+.activityGhostButton {
+  padding: 5px 10px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--success-subtle);
+  color: var(--success);
+  font-size: 0.82rem;
+  border: 1px solid rgba(78, 201, 176, 0.25);
+}
+
+.activityCheckpointActions button:hover:not(:disabled) {
+  background: rgba(78, 201, 176, 0.2);
+}
+
+.activityCheckpointActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.activityGhostButton {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border-color: var(--panel-border);
+}
+
+.activityCheckpointPreview {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(78, 201, 176, 0.25);
+  background: var(--bg-elevated);
+}
+
+.activityRollbackCard {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(78, 201, 176, 0.25);
+  background: var(--bg-elevated);
+}
+
+.activityRollbackCard p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.activityCheckpointPreview pre {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  max-height: 300px;
+  color: var(--text-primary);
+}
+
+.activityBlockerList,
+.activityItemList {
+  display: grid;
+  gap: 6px;
+}
+
+.activityBlocker,
+.activityItem {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-elevated);
+}
+
+.activityBlocker {
+  border-color: rgba(204, 167, 0, 0.35);
+}
+
+.activityItemMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.activityItem.approval {
+  border-color: rgba(204, 167, 0, 0.35);
+}
+
+.activityItem.error {
+  border-color: rgba(241, 76, 76, 0.35);
+}
+
+.activityItem.phase,
+.activityItem.note {
+  border-color: rgba(78, 201, 176, 0.35);
+}
+
+
+/* ===== Kind filter bar ===== */
+
+.kindFilterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.kindFilterPill {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.kindFilterPill.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.kindFilterPill:hover:not(.active) {
+  color: var(--ink);
+}
+

@@ -1,0 +1,5 @@
+version: 1
+trusted: true
+allow_tools: write
+allowed_paths:
+  - .

@@ -1,0 +1,88 @@
+/* ===== Onboarding ===== */
+
+.onboardingPanel {
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.onboardingCard {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(78, 201, 176, 0.08), rgba(78, 201, 176, 0.02)),
+    var(--bg-elevated);
+  border: 1px solid rgba(78, 201, 176, 0.18);
+}
+
+.onboardingStepList {
+  display: grid;
+  gap: 10px;
+}
+
+.onboardingStep {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+}
+
+.onboardingStep.active {
+  border-color: rgba(78, 201, 176, 0.35);
+  box-shadow: 0 0 0 1px rgba(78, 201, 176, 0.08) inset;
+}
+
+.onboardingStep p,
+.onboardingStep small,
+.onboardingStep strong {
+  margin: 0;
+}
+
+.onboardingStep p {
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.onboardingStep small {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.onboardingActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.onboardingActions button {
+  padding: 8px 14px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.84rem;
+}
+
+.onboardingActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.totpSetupCard {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.totpSecretBlock {
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  color: var(--success);
+  font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
+}

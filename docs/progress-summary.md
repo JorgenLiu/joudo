@@ -1,102 +1,69 @@
-# Joudo 阶段工作总结
+# Joudo 进度摘要
 
-## 本阶段目标
+## 当前阶段
 
-这一阶段的目标，是先把 Joudo 从纯文档和骨架状态，推进到“能够在真实 Copilot CLI ACP 会话上跑通最小开发闭环”的程度。
+Joudo 当前处于“本地 bridge + Web UI MVP 已打通，开始收敛策略、恢复和产品面”的阶段。
 
-换句话说，我们不是只想证明网页能连到 bridge，而是要证明以下链路同时成立：
+## 已完成的关键里程碑
 
-- 网页可以看到真实 bridge 状态
-- bridge 可以读到真实 Copilot 登录状态
-- bridge 可以在指定仓库上启动真实 ACP 会话
-- 网页可以观察提示词、审批和摘要
-- demo 仓库可以被真实会话驱动完成第一轮开发准备
+### 真实会话闭环
 
-## 已完成的工作
+- Web -> bridge -> Copilot CLI 的真实 prompt 流程已经打通
+- bridge 可以返回结构化 snapshot，而不是仅依赖终端文本
 
-### 1. 文档与方向统一
+### 运行时策略与审批
 
-- 把现有 README、架构文档和策略文档整理为中文
-- 明确 Joudo 的方向是本地优先、网页优先，而不是先做原生 App
-- 明确 ACP 是主集成路径，不采用终端抓取或 OCR
-- 把机器约束、代理要求和安全边界写入工作说明
+- repo policy 已真正接入运行时权限判定
+- 网页审批已经支持三态
+- 审批语义已经进入 approval queue、timeline、summary 和 audit
 
-### 2. 工程骨架搭建
+### policy 写回
 
-- 创建了 monorepo 结构
-- 建立了 `apps/bridge`、`apps/web`、`packages/shared`
-- 打通了 TypeScript、pnpm workspace、Vite、Fastify 的基础工程结构
-- 让 bridge 与网页之间通过 HTTP + WebSocket 共享统一快照模型
+- shell 审批可写回 `allow_shell`
+- read 审批可写回 `allowed_paths`
+- 受控 write 审批可写回 `allowed_write_paths`
 
-### 3. 从模拟状态迁移到真实 ACP 会话
+### policy 可视化
 
-- 不再只使用本地 mock 状态
-- bridge 已能创建真实 CopilotClient，并探测 Copilot CLI 登录状态
-- bridge 已能在按仓库的上下文中管理真实 Copilot 会话
-- 已接入真实权限请求，并把它们转成网页审批卡片
-- 会话状态、摘要、审批和时间线可以同步到网页端
+- 当前已有 Repo Policy 面板
+- 当前可以直接查看 `allowed_write_paths`
+- 最近一次写入 policy 的审批结果会在审批区保留成功提示
 
-### 4. 登录引导与认证状态回流
+### 历史与恢复
 
-- 明确了 `copilot login` 的设备码登录流程
-- 在网页中加入未登录引导卡片
-- 加入“重新检查登录状态”按钮
-- 确认 Copilot CLI 默认会把认证状态持久化到系统凭据存储，必要时退回 `~/.copilot/`
-- 让 bridge 可以主动刷新认证状态，而不是要求用户刷新整页
+- repo-scoped session index 已落地
+- snapshot 持久化已落地
+- history-only 恢复已落地
+- best-effort attach 恢复已落地
 
-### 5. 模型选择与当前默认模型
+### rollback 与工作区证据
 
-- 当前 bridge 默认模型已经设为 `gpt-5-mini`
-- 模型名称会进入 session snapshot，并在网页顶部显示
-- 已确认真实会话返回的快照中模型字段为 `gpt-5-mini`
+- turn-scoped changeset 已落地
+- write journal 已落地
+- tracked scope + watcher 混合证据模型已落地
+- 上一轮整体回退 eligibility 已进入 activity
 
-### 6. demo 仓库与第一轮基线
+## 当前最重要的收敛点
 
-- 创建了 `~/dev/demo` 作为真实 ACP 验证仓库
-- 为 demo 仓库增加了保守的 repo policy 示例
-- 搭建了最小 FastAPI 服务和 SQLite 示例数据
-- 当前 demo 仓库已包含：
-  - `app/main.py`
-  - `requirements.txt`
-  - `.github/joudo-policy.yml`
-  - `demo.db`
-  - `.venv/`
+### 产品面开始统一
 
-### 7. 第一轮真实开发流验证
+当前的 prompt、审批、summary、activity、history、policy 已开始形成统一产品面，而不是分散的技术实验入口。
 
-- 已确认真实会话能在 demo 仓库上返回只读回答
-- 已确认第一轮环境准备至少推进到了创建 `.venv`
-- 当前本地验证表明 FastAPI 服务已经启动，`/health` 可访问
-- 当前本地验证表明 `/todos` 可访问，SQLite 示例数据可读
+### 策略边界比之前更清晰
 
-## 当前已验证的结果
+尤其是 write 持久化，现在已经从“可能变宽”收敛成单独的 `allowed_write_paths`。
 
-到目前为止，已经可以确认以下事实：
+### 文档开始从阶段性草稿转向少量事实文档
 
-- Joudo 网页不是假状态，它能读到真实 bridge 快照
-- bridge 不是假会话，它能连上真实 Copilot CLI ACP 会话
-- Copilot 登录状态已经能被 bridge 读取并显示
-- 当前模型已经固定为 `gpt-5-mini`
-- demo 仓库已经不再是空仓库，而是有可运行的后端与数据库基线
-- 第一轮最小开发准备已经基本成立
+本轮重写的目标就是把过时讨论文档清掉，保留更短、更稳定的事实来源。
 
-## 当前还没有完成的部分
+## 当前仍未完成的部分
 
-虽然主链路已经通了，但仍然有几块没有收口：
+- allowlist 删除与治理入口
+- 更强的 recovery / rollback 解释能力
+- 最终交付形态与安装包
+- 更系统的产品级 polish
 
-- 还没有系统验证浏览器工具链路
-- 还没有系统验证 repo 外路径访问的策略行为
-- 还没有系统验证自动允许、需要确认、自动拒绝三类策略决策
-- 还没有把会话恢复、失败恢复和审计汇总完整验证一遍
-- 还没有让网页把更细的执行过程可视化到足以替代命令行观察
+## 当前阶段结论
 
-## 对下一步的意义
-
-这意味着 Joudo 已经越过了“只有工程壳子”的阶段，进入了“可以拿真实 repo 跑真实开发场景”的阶段。
-
-接下来最值得投入的，不再是继续补基础骨架，而是开始系统验证：
-
-- 浏览器观测
-- 策略分支
-- 失败恢复
-- 审计与摘要质量
+Joudo 已经跨过“概念验证”阶段，进入“把现有能力收敛成稳定产品面”的阶段。

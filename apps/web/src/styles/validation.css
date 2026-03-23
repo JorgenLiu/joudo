@@ -1,0 +1,113 @@
+/* ===== Validation ===== */
+
+.validationPanel {
+  margin-top: 0;
+}
+
+.validationCard {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.validationHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.validationCard p,
+.validationScenario p,
+.validationCard small,
+.validationScenario small,
+.validationHeaderRow strong,
+.validationScenario strong {
+  margin: 0;
+}
+
+.validationScenarioList {
+  display: grid;
+  gap: 6px;
+}
+
+.validationCoverageList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 6px;
+}
+
+.validationCoverage,
+.validationCheck {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-elevated);
+}
+
+.validationCoverage.success,
+.validationCheck.success {
+  border-color: rgba(78, 201, 176, 0.35);
+}
+
+.validationCoverage.failure,
+.validationCheck.failure {
+  border-color: rgba(241, 76, 76, 0.35);
+}
+
+.validationCoverageHeader,
+.validationCheckHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.validationScenario {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+}
+
+.validationScenario.success {
+  border-color: rgba(78, 201, 176, 0.35);
+}
+
+.validationScenario.failure {
+  border-color: rgba(241, 76, 76, 0.35);
+}
+
+.validationCheckList {
+  display: grid;
+  gap: 6px;
+}
+
+.validationDetailList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.validationDetailList div {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.validationDetailList dt {
+  margin-bottom: 2px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.validationDetailList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+

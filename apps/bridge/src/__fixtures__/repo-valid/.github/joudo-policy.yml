@@ -1,0 +1,52 @@
+version: 1
+trusted: true
+allow_tools:
+  - write
+allow_shell:
+  - git status
+  - git diff
+  - git log
+  - git show
+  - git branch
+  - git rev-parse
+  - git ls-files
+  - rg
+  - ls
+  - head
+  - tail
+  - pwd
+  - which
+  - wc
+  - python --version
+  - pnpm test
+  - pnpm lint
+  - pnpm typecheck
+  - npm test
+  - npm run lint
+  - npm run typecheck
+  - yarn test
+  - yarn lint
+  - yarn typecheck
+  - python3 --version
+  - pip --version
+  - pip3 --version
+  - node --version
+  - npm --version
+  - pnpm --version
+  - python -m pytest
+  - python3 -m pytest
+  - pytest -q
+  - ruff check
+  - mypy
+  - tsc --noEmit
+deny_shell:
+  - git push
+confirm_shell:
+  - pnpm add
+allowed_paths:
+  - .
+  - ./src
+  - ./tests
+allowed_urls:
+  - github.com
+  - api.github.com

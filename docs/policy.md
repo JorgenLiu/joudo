@@ -1,201 +1,183 @@
 # Joudo 策略模型
 
-## 设计目标
+## 目标
 
-Joudo 需要一套足够严格的策略系统，才能支撑无头的移动端使用场景。
+Joudo 需要一套比“默认放开 Copilot CLI”更严格的 repo-scoped 策略系统。
 
-用户应该能够躺在床上发出一个提示词，并相信那些显而易见的危险操作不会仅仅因为 Copilot 找到了捷径就被静默执行。
+当前策略模型的目标是：
 
-## 核心原则
+- 把权限边界收紧到仓库级别
+- 让 bridge 能对真实权限请求做运行时判定
+- 让用户能在网页端审批策略外请求
+- 允许把一部分人工批准结果反向写回 repo policy
 
-按仓库配置的策略应参考 `sudoers` 风格的允许列表，但它覆盖的范围必须超过 shell 命令本身。
+## 当前支持的 policy 字段
 
-一套完整策略需要控制：
+当前 bridge 支持从以下文件位置加载 policy：
 
-- 工具权限
-- shell 命令家族
-- 可写路径
-- 允许访问的 URL 或域名
-- 中风险操作的确认规则
+- `.github/joudo-policy.yml`
+- `.github/joudo-policy.yaml`
+- `.github/policy.yml`
+- `.github/policy.yaml`
 
-## 推荐的执行层次
+当前支持的字段：
 
-Joudo 应在两个阶段执行策略。
+- `allow_tools`
+- `deny_tools`
+- `confirm_tools`
+- `allow_shell`
+- `deny_shell`
+- `confirm_shell`
+- `allowed_paths`
+- `allowed_write_paths`
+- `allowed_urls`
 
-### 1. 启动前的静态限制
+## 运行时决策模型
 
-在会话启动前，将仓库策略编译成 Copilot CLI 的启动参数，例如：
+bridge 在收到权限请求后，会返回三类结果之一：
 
-- `--allow-tool`
-- `--deny-tool`
-- `--available-tools`
-- `--allow-url`
-- `--deny-url`
+- `allow`
+- `confirm`
+- `deny`
 
-这样可以直接缩小 Copilot 能够尝试的动作集合。
+这不是静态检查，而是当前真实会话中的运行时决策。
 
-### 2. 运行时权限决策
+## 当前默认行为
 
-当 ACP 发出权限请求时，Joudo 会根据仓库策略评估该工具调用，并返回以下结果之一：
+### shell
 
-- 自动允许
-- 自动拒绝
-- 要求用户在网页端显式审批
+- 仓库内只读 shell 探索可以自动允许
+- 高风险解释器和明显危险命令默认拒绝，除非被显式 allow
+- 命中 `confirm_shell` 或策略未覆盖但仍可人工判断的 shell，会进入网页审批
 
-这是最后一道防线，并且应当被记录到日志中。
+### read
 
-## 重要约束
+- repo 内命中 `allowed_paths` 的读取可自动允许
+- repo 外读取或超出 allowlist 的读取会进入确认
 
-不要把 `shell(node)`、`shell(python)`、`shell/bash)`、`shell(sh)` 或类似解释器视为安全的允许列表项。
+### write
 
-广泛允许这些命令，几乎等同于允许任意代码执行。
+- 超出 repo 边界的写入直接拒绝
+- 命中 `allowed_write_paths` 的 write 可自动允许
+- repo 内但不在 write allowlist 的写入通常进入确认
+- 当前不会因为持久化一次 write 审批就放开全局 `allow_tools: write`
 
-默认立场应当是：
+### URL
 
-- 允许明确列出的只读命令
-- 如果构建、测试、lint 命令稳定且可预测，则允许这些特定命令
-- 对安装依赖或切换 Git 分支等操作要求确认
-- 默认拒绝破坏性或带有提权倾向的命令
+- 默认拒绝未命中 allowlist 的 URL
+- 当前没有继续扩展 URL 持久化审批能力
 
-## 仓库策略示例
+## 网页审批动作
 
-```yaml
-version: 1
-trusted: true
-allow_tools:
-  - write
-allow_shell:
-  - git status
-  - git diff
-  - git log
-  - rg
-  - ls
-  - cat
-  - pnpm test
-  - pnpm lint
-  - pytest -q
-deny_shell:
-  - rm
-  - sudo
-  - ssh
-  - scp
-  - osascript
-  - git push
-  - gh pr merge
-confirm_shell:
-  - pnpm add
-  - npm install
-  - brew
-allowed_paths:
-  - .
-  - ./src
-  - ./tests
-allowed_urls:
-  - github.com
-  - api.github.com
-```
+当前网页审批支持：
 
-## 建议的评估规则
+- 拒绝
+- 允许本次
+- 允许并加入 policy
 
-### 自动允许
+持久化批准当前覆盖：
 
-比较适合自动允许的项目：
+- shell -> `allow_shell`
+- read -> `allowed_paths`
+- 受控 write -> `allowed_write_paths`
 
-- 只读 Git 查询
-- 像 `rg` 这样的搜索命令
-- 目录列出和文件查看
-- 仓库策略中已声明的确定性测试和 lint 命令
+## `allowed_write_paths` 的语义
 
-### 需要确认
+这是当前策略模型里最重要的新收敛点。
 
-比较适合要求确认的项目：
+它的目的不是“允许写很多地方”，而是避免把一次受控写入审批错误升级成全局 `allow_tools: write`。
 
-- 依赖安装
-- Git 分支变更
-- 会重写大量文件的格式化工具
-- 运行仓库特定生成器
-- 访问已批准域名的对外网络请求
+当前持久化 write 只接受两类结果：
 
-### 自动拒绝
+- 明确单文件路径，例如 `./src/index.ts`
+- `generated` / `__generated__` 目录，例如 `./src/generated`
 
-比较适合自动拒绝的项目：
+不建议把以下路径写入 `allowed_write_paths`：
+
+- `.`
+- `./src`
+- 任何覆盖整片业务源码的宽路径
+
+## 为什么要把 `allowed_paths` 和 `allowed_write_paths` 分开
+
+因为“允许读”不等于“允许写”。
+
+当前模型明确区分：
+
+- `allowed_paths` 用于读取边界
+- `allowed_write_paths` 用于 write tool 自动允许边界
+
+这样才能避免把读取型 allowlist 误解释成写入权限。
+
+## 已知限制：路径验证的 TOCTOU 竞态
+
+Joudo 的路径验证使用 `realpathSync()` 解析符号链接后再做包含性检查。但在"检查路径"和"Copilot CLI 实际执行读写"之间存在一个时间窗口（TOCTOU, Time-of-Check to Time-of-Use）。
+
+在这个窗口内，如果文件系统被外部修改（例如符号链接被替换成指向 repo 外的目标），Joudo 的路径判定可能不再准确。
+
+对于 Joudo 的目标场景（本地单用户、repo-scoped 操作），这一风险可控：
+
+- 攻击者需要在本机有文件系统写权限才能竞态替换符号链接
+- 如果攻击者已有本机写权限，他可以直接操作文件而无需绕过 Joudo
+- Joudo 本身不是 sandbox，它是策略辅助层
+
+当前处理：
+- `resolvePathForContainment()` 在检查时刻使用 `realpathSync()` 解析到最终物理路径
+- 如果候选路径的某段不存在，回退到最近可解析的父路径加相对后缀
+- 不做后续的二次验证或 inode lock
+
+如果后续引入远程访问场景或多用户环境，应当重新评估此限制。
+
+## Policy 写回约束
+
+当用户选择“允许并加入 policy”时，bridge 会：
+
+- 归一化当前请求
+- 将规则写入 repo policy
+- 重新加载 policy
+- 更新当前 session snapshot 中的结构化 policy 摘要
+
+同时，这个写回动作不会被算成当前 Copilot turn 的工作区漂移。
+
+## 当前推荐起始模板
+
+推荐起始模板见：
+
+- `docs/examples/joudo-policy.recommended.yml`
+
+这份模板的重点不是“放开一切”，而是：
+
+- 自动允许高频只读命令
+- 把高风险 shell 留在 confirm 或 deny
+- 给 write 留出单独的窄 allowlist
+
+## 当前推荐实践
+
+### 适合自动 allow 的项
+
+- Git 只读查询
+- 文件查看与搜索
+- 稳定的测试、lint、typecheck 命令
+- 受控 generated 目录写入
+- 明确的单文件写入
+
+### 适合 confirm 的项
+
+- 安装依赖
+- 启动长期运行服务
+- repo 内但未命中 write allowlist 的写入
+- 访问已允许域名但当前仍需要人工判断的请求
+
+### 适合 deny 的项
 
 - `sudo`
 - `rm`
-- 超出仓库范围的 `mv`
-- 面向大范围通配符的 `chmod`
-- 指向远程主机的 `ssh`、`scp`、`rsync`
+- `ssh` / `scp` / `rsync`
 - `git push`
-- 如 `osascript` 这类浏览器或桌面自动化命令
+- repo 外写入
 
-## 路径策略
+## 当前限制
 
-路径限制应始终比用户账户的真实文件系统权限更窄。
-
-默认规则：
-
-- 只有选中的仓库根目录和明确列出的子路径可写
-- 除非确有需要，否则应尽量减少对临时目录的访问
-- 应阻止 home 目录和同级仓库的访问
-
-## URL 策略
-
-即使产品是本地优先，URL 策略仍然重要。
-
-默认规则：
-
-- 默认拒绝
-- 每个仓库只允许显式列出的域名
-- 如果底层权限系统区分 HTTP 和 HTTPS，则应分别处理
-
-这对以下场景尤其重要：
-
-- `curl`
-- `wget`
-- 包管理器
-- GitHub 及其他 API 调用
-
-## 信任模型
-
-永久信任应按仓库根目录授予，而绝不能扩大到整个 home 目录。
-
-推荐的运行模型：
-
-- 指定一个开发根目录，例如 `~/dev`
-- 仅信任该目录下的特定仓库
-- 可选地让 Joudo worker 在单独的非管理员账户下运行
-
-## 审计
-
-每一次审批决策都应记录以下信息：
-
-- 时间戳
-- 仓库
-- 会话 id
-- 提示词 id
-- 请求的命令或工具
-- 策略匹配结果
-- 决策是自动完成还是由用户确认
-
-这对于排查异常代理行为会很关键。
-
-## 推荐默认值
-
-Joudo 应以内置保守默认值的方式交付。
-
-- 即使仓库策略不完整，也要拒绝危险命令
-- 对缺失策略文件的写入型会话直接拒绝
-- 以最小权限保留只读探索能力
-- 只有在用户显式选择加入后，才启用更宽松的自动化能力
-
-## 运行建议
-
-如果用户希望接近免打扰的使用模式，最安全的实现仍然是在受约束环境中运行 worker。
-
-例如：
-
-- 使用没有管理员权限的独立 macOS 用户账户
-- 使用容器化的仓库 worker
-- 使用沙箱化的临时 worktree
-
-Copilot CLI 的权限能力已经很强，但它并不是完美沙箱。Joudo 的设计必须以这一点为前提。
+- 还没有 allowlist 删除或回收入口
+- 还没有 URL 持久化审批
+- 还没有更细粒度的“写入原因”治理面板

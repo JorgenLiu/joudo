@@ -1,0 +1,181 @@
+/* ===== Policy ===== */
+
+.panelLead {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.policyPanel {
+  display: grid;
+  gap: 8px;
+}
+
+.policyCard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+}
+
+.policyHero {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+}
+
+.policyHero p,
+.policyHero strong,
+.policyHero small {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.policyOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.policyOverviewStat,
+.policyRecentChange,
+.policySection,
+.policyRuleCard {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-elevated);
+}
+
+.policyOverviewStat {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  transition: border-color 150ms ease;
+}
+
+.policyOverviewStat span,
+.policyRecentChange small,
+.policySectionHeader p,
+.policyRuleMatched,
+.policyRuleNote,
+.policyRuleMetaList dt {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.policyRecentChange,
+.policySection {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.policyRecentChangeHeader,
+.policySectionHeader,
+.policyRuleHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.policyRecentChange p,
+.policyRecentChange small,
+.policySectionHeader h3,
+.policySectionHeader p,
+.policyRuleCard p,
+.policyRuleCard strong {
+  margin: 0;
+}
+
+.policyRuleList {
+  display: grid;
+  gap: 6px;
+}
+
+.policyRuleCard {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  transition: border-color 150ms ease;
+}
+
+.policyRuleCard:hover {
+  border-color: var(--text-muted);
+}
+
+.policyRuleTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+.policyRuleMetaList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.policyRuleMetaList div {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.policyRuleMetaList dt {
+  margin-bottom: 2px;
+  font-size: 0.8rem;
+}
+
+.policyRuleMetaList dd {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.policyList {
+  margin: 0;
+}
+
+.policyRuleActions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+
+/* ===== Policy collapsible content ===== */
+
+.policySectionContent {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.policySectionDesc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+
+/* ===== Policy recent banner ===== */
+
+.policyRecentBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--info-subtle);
+  border: 1px solid rgba(117, 190, 255, 0.2);
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+

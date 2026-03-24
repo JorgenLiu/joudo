@@ -1,12 +1,11 @@
+import { createHash } from "node:crypto";
 import { existsSync, statSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import type { RepoDescriptor } from "@joudo/shared";
 
 import { loadRepoPolicy } from "../policy/index.js";
-
-const WORKSPACE_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
+import { hideRepoRoot, loadRepoRegistry, registerManagedRepoRoot, unhideRepoRoot } from "./repo-registry.js";
 
 function isExistingDirectory(candidatePath: string): boolean {
   try {
@@ -16,13 +15,13 @@ function isExistingDirectory(candidatePath: string): boolean {
   }
 }
 
-function createRepoId(rootPath: string, index: number): string {
-  const stem = basename(rootPath).replace(/[^a-zA-Z0-9_-]+/g, "-").toLowerCase() || `repo-${index + 1}`;
-  return `${stem}-${index + 1}`;
+function createRepoId(rootPath: string): string {
+  const stem = basename(rootPath).replace(/[^a-zA-Z0-9_-]+/g, "-").toLowerCase() || "repo";
+  const suffix = createHash("sha256").update(rootPath).digest("hex").slice(0, 8);
+  return `${stem}-${suffix}`;
 }
 
-export function buildRepos(): RepoDescriptor[] {
-  const homeDir = process.env.HOME ? resolve(process.env.HOME) : null;
+function defaultRepoRoots(): string[] {
   const configuredRoot = process.env.JOUDO_REPO_ROOT ? resolve(process.env.JOUDO_REPO_ROOT) : null;
   const extraRoots = (process.env.JOUDO_EXTRA_REPOS ?? "")
     .split(",")
@@ -30,20 +29,46 @@ export function buildRepos(): RepoDescriptor[] {
     .filter(Boolean)
     .map((entry) => resolve(entry));
   const candidates = [
-    ...(homeDir ? [resolve(homeDir, "dev", "demo")] : []),
-    ...(configuredRoot ? [configuredRoot] : [resolve(WORKSPACE_ROOT)]),
+    ...(configuredRoot ? [configuredRoot] : []),
     ...extraRoots,
   ];
-  const uniqueRoots = [...new Set(candidates)].filter((rootPath) => isExistingDirectory(rootPath));
+  return [...new Set(candidates)].filter((rootPath) => isExistingDirectory(rootPath));
+}
 
-  return uniqueRoots.map((rootPath, index) => {
-    const policy = loadRepoPolicy(rootPath);
-    return {
-      id: createRepoId(rootPath, index),
-      name: basename(rootPath) || `repo-${index + 1}`,
-      rootPath,
-      trusted: policy.config?.trusted ?? false,
-      policyState: policy.state,
-    };
-  });
+export function describeRepo(rootPath: string): RepoDescriptor {
+  const normalizedRoot = resolve(rootPath);
+  const policy = loadRepoPolicy(normalizedRoot);
+  return {
+    id: createRepoId(normalizedRoot),
+    name: basename(normalizedRoot) || "repo",
+    rootPath: normalizedRoot,
+    trusted: policy.config?.trusted ?? false,
+    policyState: policy.state,
+  };
+}
+
+export function buildRepos(): RepoDescriptor[] {
+  const defaults = defaultRepoRoots();
+  const registry = loadRepoRegistry();
+  const hiddenRoots = new Set(registry.hiddenRoots.map((rootPath) => resolve(rootPath)));
+  const uniqueRoots = [...new Set([...defaults, ...registry.managedRoots])]
+    .map((rootPath) => resolve(rootPath))
+    .filter((rootPath) => isExistingDirectory(rootPath) && !hiddenRoots.has(rootPath));
+
+  return uniqueRoots.map((rootPath) => describeRepo(rootPath));
+}
+
+export function registerRepo(rootPath: string): RepoDescriptor {
+  const normalizedRoot = resolve(rootPath);
+  if (!isExistingDirectory(normalizedRoot)) {
+    throw new Error(`目录不存在或不可访问: ${normalizedRoot}`);
+  }
+
+  registerManagedRepoRoot(normalizedRoot);
+  unhideRepoRoot(normalizedRoot);
+  return describeRepo(normalizedRoot);
+}
+
+export function removeRepo(rootPath: string) {
+  hideRepoRoot(resolve(rootPath));
 }

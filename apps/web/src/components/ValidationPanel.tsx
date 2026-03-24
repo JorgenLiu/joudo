@@ -49,8 +49,10 @@ export function ValidationPanel({ validationReport, isRefreshingValidation, onRe
               {isRefreshingValidation ? "刷新中" : "刷新结果"}
             </button>
           </div>
-          <p>{validationReport.repo.name} / {validationReport.repo.rootPath}</p>
-          <small>报告文件：{validationReport.reportPath}</small>
+          <div className="validationReportMeta">
+            <p>{validationReport.repo.name} / {validationReport.repo.rootPath}</p>
+            <small>报告文件：{validationReport.reportPath}</small>
+          </div>
           {coverageEntries.length ? (
             <div className="validationCoverageList">
               {coverageEntries.map(([p0Key, entries]) => (
@@ -67,7 +69,8 @@ export function ValidationPanel({ validationReport, isRefreshingValidation, onRe
           {validationReport.scenarios.length ? (
             <details className="collapsible">
               <summary>场景详情（{validationReport.scenarios.filter((s) => s.success).length}/{validationReport.scenarios.length} 通过）</summary>
-              <div className="validationScenarioList" style={{ padding: "0 10px 10px" }}>
+              <div className="validationScenarioWrap">
+                <div className="validationScenarioList">
                 {validationReport.scenarios.map((scenario) => (
                   <article key={`${scenario.label}-${scenario.command}`} className={`validationScenario${scenario.success ? " success" : " failure"}`}>
                     <strong>{scenario.label}</strong>
@@ -84,6 +87,7 @@ export function ValidationPanel({ validationReport, isRefreshingValidation, onRe
                     {scenario.notes ? <small>{scenario.notes}</small> : null}
                   </article>
                 ))}
+                </div>
               </div>
             </details>
           ) : null}
@@ -114,7 +118,7 @@ export function ValidationPanel({ validationReport, isRefreshingValidation, onRe
         </div>
       ) : (
         <div className="validationCard">
-          <p className="emptyState">还没有 live policy 回归结果。先运行 corepack pnpm validate:policy-live，再刷新这里。</p>
+          <p className="emptyState">当前没有 live policy 回归结果。</p>
           <button type="button" className="secondaryButton" onClick={() => void onRefreshValidation()} disabled={isRefreshingValidation}>
             {isRefreshingValidation ? "刷新中" : "读取结果"}
           </button>

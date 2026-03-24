@@ -16,6 +16,7 @@ Joudo is a local-first, web-first mobile access frontend for GitHub Copilot CLI.
 - Do not implement terminal scraping, OCR, or UI parsing of Copilot's interactive interface when ACP or structured output can be used.
 - Keep session state repo-scoped and explicit.
 - Prefer a bridge design that separates transport, policy evaluation, session control, and summarization.
+- Keep bridge state logic split across focused `state/*` modules rather than re-growing `mvp-state.ts` into a catch-all file.
 - Preserve a clean boundary between mobile client code and local execution code.
 
 ## Security rules
@@ -40,6 +41,11 @@ Joudo is a local-first, web-first mobile access frontend for GitHub Copilot CLI.
 - Favor simple, inspectable formats for repo policy.
 - Make approval decisions explainable in logs and UI.
 - When summarizing agent output, prefer structured fields over lossy free-text compression.
+- Treat `.joudo/repo-instructions.md`, `.joudo/sessions-index.json`, and `.joudo/sessions/<id>/snapshot.json` as the source of truth for first-phase repo-scoped persistence.
+- Preserve the current recovery contract:
+	- completed `idle` / `disconnected` historical sessions may use best-effort attach
+	- interrupted `running` / `awaiting-approval` sessions recover as history-only context
+	- never present old approvals as still actionable after bridge restart
 - Keep LAN transport authenticated.
 - Design for local-first operation before considering remote access.
 - The current development machine is older hardware locked to macOS Ventura.
@@ -55,6 +61,14 @@ Joudo is a local-first, web-first mobile access frontend for GitHub Copilot CLI.
 
 ## Documentation expectations
 
+Maintain `docs/next-step-plan.md` as the source of truth for pending next-step planning.
+
+Whenever a meaningful task finishes or requirements/plans change:
+
+- review `docs/next-step-plan.md`
+- update completed items, current decisions, and the next implementation candidates
+- record any code-change plans or requirement-change plans there before they drift into chat-only context
+
 When adding features, update the relevant docs in `docs/` if the change affects:
 
 - architecture
@@ -62,3 +76,11 @@ When adding features, update the relevant docs in `docs/` if the change affects:
 - repo policy behavior
 - approval flow
 - session lifecycle
+
+When changing bridge state or recovery behavior, keep these docs aligned at minimum:
+
+- `docs/current-status.md`
+- `docs/implementation-notes.md`
+- `docs/progress-summary.md`
+- `docs/session-recovery-plan.md`
+- `docs/acp-demo-plan.md` when demo validation status changes

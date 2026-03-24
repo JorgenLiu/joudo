@@ -252,8 +252,24 @@ export interface SessionCheckpointDocument {
   content: string;
 }
 
+export interface SessionAgentCatalog {
+  globalCount: number;
+  repoCount: number;
+  totalCount: number;
+}
+
 export interface RepoInstructionUpdatePayload {
   userNotes: string;
+}
+
+export interface RepoAddPayload {
+  rootPath: string;
+  initializePolicy?: boolean;
+  trusted?: boolean;
+}
+
+export interface RepoRemovePayload {
+  repoId: string;
 }
 
 export interface RepoInitPolicyPayload {
@@ -433,6 +449,9 @@ export interface SessionSnapshot {
   policy?: RepoPolicySnapshot | null;
   model: string;
   availableModels: string[];
+  agent: string | null;
+  availableAgents: string[];
+  agentCatalog: SessionAgentCatalog;
   auth: CopilotAuthState;
   lastPrompt: string | null;
   approvals: ApprovalRequest[];
@@ -456,6 +475,10 @@ export interface RepoSelectionPayload {
 
 export interface SessionModelSelectionPayload {
   model: string;
+}
+
+export interface SessionAgentSelectionPayload {
+  agent: string | null;
 }
 
 export interface PromptSubmission {
@@ -483,6 +506,13 @@ export interface TotpSetupResponse {
   secret?: string;
   uri?: string;
   message: string;
+}
+
+export interface TotpRebindResponse {
+  success: boolean;
+  message: string;
+  secret: string;
+  uri: string;
 }
 
 export interface TotpVerifyResponse {

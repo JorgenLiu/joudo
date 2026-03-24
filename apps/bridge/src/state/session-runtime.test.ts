@@ -17,6 +17,7 @@ function createMinimalRepoContext(overrides?: Partial<RepoContext>): RepoContext
     repo: { id: "test-repo", name: "test-repo", rootPath: "/tmp/test-repo", trusted: false },
     policy: { state: "not-found", path: null, config: null, error: null },
     currentModel: "gpt-4o",
+    currentAgent: null,
     status: "disconnected",
     lastPrompt: null,
     timeline: [],
@@ -222,6 +223,16 @@ test("refreshAuthState: handles unauthenticated status", async () => {
   const state = await runtime.refreshAuthState();
   assert.equal(state.status, "unauthenticated");
   assert.match(state.message, /not logged in/);
+});
+
+test("createSessionConfig includes selected agent when present", () => {
+  const { runtime, context } = createTestRuntime();
+  context.currentAgent = "reviewer";
+
+  const config = runtime.createSessionConfig(context);
+
+  assert.equal(config.model, "gpt-4o");
+  assert.equal(config.agent, "reviewer");
 });
 
 test("refreshAuthState: handles client error gracefully", async () => {

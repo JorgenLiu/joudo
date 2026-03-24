@@ -102,6 +102,13 @@ function createBaseSnapshot(
     repo,
     model: "gpt-5-mini",
     availableModels: ["gpt-5-mini", "gpt-5.4"],
+    agent: null,
+    availableAgents: [],
+    agentCatalog: {
+      globalCount: 0,
+      repoCount: 0,
+      totalCount: 0,
+    },
     auth: {
       status: "authenticated",
       message: "authenticated",

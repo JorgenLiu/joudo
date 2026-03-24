@@ -1,4 +1,5 @@
 import type {
+  RepoAddPayload,
   ApprovalRequest,
   ApprovalDecision,
   ApprovalType,
@@ -10,6 +11,7 @@ import type {
   RepoInitPolicyResult,
   RepoInstructionDocument,
   RepoPolicyRuleDeletePayload,
+  RepoRemovePayload,
   SessionCheckpointDocument,
   ServerEvent,
   SessionIndexDocument,
@@ -32,6 +34,7 @@ import {
   getSessionIndexPath as defaultGetSessionIndexPath,
   initializeRepoInstruction as defaultInitializeRepoInstruction,
   initializeSessionIndex as defaultInitializeSessionIndex,
+  clearSessionHistory as defaultClearSessionHistory,
   loadSessionIndex as defaultLoadSessionIndex,
   readSessionSnapshot as defaultReadSessionSnapshot,
   readOrCreateRepoInstruction as defaultReadOrCreateRepoInstruction,
@@ -42,7 +45,12 @@ import {
   disconnectRepoSession as defaultDisconnectRepoSession,
 } from "./state/repo-context.js";
 import { readWorkspaceCheckpoint as defaultReadWorkspaceCheckpoint } from "./state/checkpoints.js";
-import { buildRepos as defaultBuildRepos } from "./state/repo-discovery.js";
+import { discoverAgentCatalog as defaultDiscoverAgentCatalog } from "./state/agent-discovery.js";
+import {
+  buildRepos as defaultBuildRepos,
+  registerRepo as defaultRegisterRepo,
+  removeRepo as defaultRemoveRepo,
+} from "./state/repo-discovery.js";
 import { applyPersistedSessionState } from "./state/history-recovery.js";
 import { handlePermissionRequest } from "./state/session-permissions.js";
 import { describePermission } from "./state/approvals.js";
@@ -82,7 +90,16 @@ const AUDIT_LOG_LIMIT = 40;
 
 export type MvpStateDeps = {
   buildRepos: () => RepoDescriptor[];
-  createRepoContext: (repo: RepoDescriptor, model: string) => RepoContext;
+  registerRepo: (rootPath: string) => RepoDescriptor;
+  removeRepo: (rootPath: string) => void;
+  discoverAgentCatalog: (rootPath: string) => ReturnType<typeof defaultDiscoverAgentCatalog>;
+  createRepoContext: (
+    repo: RepoDescriptor,
+    model: string,
+    agent: string | null,
+    availableAgents: string[],
+    agentCatalog: ReturnType<typeof defaultDiscoverAgentCatalog>["counts"],
+  ) => RepoContext;
   disconnectRepoSession: (context: RepoContext) => Promise<void>;
   loadRepoPolicy: (rootPath: string) => LoadedRepoPolicy;
   initializeRepoPolicy: typeof defaultInitializeRepoPolicy;
@@ -93,6 +110,7 @@ export type MvpStateDeps = {
   readOrCreateRepoInstruction: typeof defaultReadOrCreateRepoInstruction;
   initializeRepoInstruction: typeof defaultInitializeRepoInstruction;
   initializeSessionIndex: typeof defaultInitializeSessionIndex;
+  clearSessionHistory: typeof defaultClearSessionHistory;
   getRepoInstructionPath: typeof defaultGetRepoInstructionPath;
   getSessionIndexPath: typeof defaultGetSessionIndexPath;
   saveRepoInstruction: typeof defaultSaveRepoInstruction;
@@ -101,6 +119,9 @@ export type MvpStateDeps = {
 
 const defaultDeps: MvpStateDeps = {
   buildRepos: defaultBuildRepos,
+  registerRepo: defaultRegisterRepo,
+  removeRepo: defaultRemoveRepo,
+  discoverAgentCatalog: defaultDiscoverAgentCatalog,
   createRepoContext: defaultCreateRepoContext,
   disconnectRepoSession: defaultDisconnectRepoSession,
   loadRepoPolicy: defaultLoadRepoPolicy,
@@ -112,6 +133,7 @@ const defaultDeps: MvpStateDeps = {
   readOrCreateRepoInstruction: defaultReadOrCreateRepoInstruction,
   initializeRepoInstruction: defaultInitializeRepoInstruction,
   initializeSessionIndex: defaultInitializeSessionIndex,
+  clearSessionHistory: defaultClearSessionHistory,
   getRepoInstructionPath: defaultGetRepoInstructionPath,
   getSessionIndexPath: defaultGetSessionIndexPath,
   saveRepoInstruction: defaultSaveRepoInstruction,
@@ -135,9 +157,9 @@ function parseAvailableModels(rawValue: string | undefined, defaultModel: string
 
 export function createMvpState(options: CreateMvpStateOptions = {}) {
   const deps: MvpStateDeps = { ...defaultDeps, ...options.deps };
-  const repos = options.repos ?? deps.buildRepos();
+  let repos = options.repos ?? deps.buildRepos();
   const listeners = new Set<Listener>();
-  const repoContexts = new Map(repos.map((repo) => [repo.id, deps.createRepoContext(repo, DEFAULT_MODEL)]));
+  const repoContexts = new Map(repos.map((repo) => [repo.id, createContext(repo, DEFAULT_MODEL, null)]));
   const approvalRepoIndex = new Map<string, string>();
   const sessionIndices = new Map<string, SessionIndexDocument>(repos.map((repo) => [repo.id, deps.loadSessionIndex(repo)]));
   const persistenceQueues = new Map<string, Promise<void>>();
@@ -214,6 +236,60 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
 
   function currentContext(): RepoContext | null {
     return currentRepoId ? repoContexts.get(currentRepoId) ?? null : null;
+  }
+
+  function createContext(repo: RepoDescriptor, model: string, agent: string | null) {
+    const catalog = deps.discoverAgentCatalog(repo.rootPath);
+    const nextAgent = agent && catalog.availableAgents.includes(agent) ? agent : null;
+    return deps.createRepoContext(repo, model, nextAgent, catalog.availableAgents, catalog.counts);
+  }
+
+  function refreshContextAgents(context: RepoContext, options?: { notifyIfSelectionMissing?: boolean }) {
+    const catalog = deps.discoverAgentCatalog(context.repo.rootPath);
+    context.availableAgents = catalog.availableAgents;
+    context.agentCatalog = catalog.counts;
+
+    if (context.currentAgent && !catalog.availableAgents.includes(context.currentAgent)) {
+      const removedAgent = context.currentAgent;
+      context.currentAgent = null;
+
+      if (options?.notifyIfSelectionMissing) {
+        pushTimeline(context, {
+          kind: "status",
+          title: "执行 agent 已自动回退",
+          body: `之前选择的 agent ${removedAgent} 已不存在或已被移除。Joudo 已切回默认模式，并把它从当前列表中移除。`,
+        });
+      }
+
+      return { removedAgent };
+    }
+
+    return { removedAgent: null as string | null };
+  }
+
+  async function refreshContextAgentsForPrompt(context: RepoContext) {
+    const { removedAgent } = refreshContextAgents(context, { notifyIfSelectionMissing: true });
+    if (!removedAgent) {
+      return;
+    }
+
+    if (context.lifecycle.session && !context.lifecycle.activePrompt) {
+      await deps.disconnectRepoSession(context);
+    }
+
+    context.summary = {
+      title: "执行 agent 已自动回退",
+      body: `之前选择的 agent ${removedAgent} 已不存在或已被移除。Joudo 已切回默认模式，并将在本轮按默认模式继续执行。`,
+      steps: createSummarySteps({ timeline: context.timeline, status: "completed" }),
+      executedCommands: [],
+      changedFiles: [],
+      checks: ["当前仓库已切回默认 agent 模式"],
+      risks: createPolicyRiskMessages(context.policy),
+      nextAction: "如果你仍然需要自定义 agent，请先在 Copilot 的全局或当前仓库目录里重新添加它。",
+    };
+    touch(context, "idle");
+    queueRepoPersistence(context);
+    publishIfCurrent(context.repo.id);
   }
 
   function normalizeAvailableModels(nextModels: string[]) {
@@ -327,6 +403,31 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
       publishCurrentSnapshot();
     }
   }
+
+  function ensureCurrentContextSummary(context: RepoContext, title: string, body: string) {
+    refreshRepoPolicy(context);
+    if (!context.lifecycle.joudoSessionId || !context.summary) {
+      context.summary = createAuthSummary(context.repo, authState, context.policy);
+      pushTimeline(context, {
+        kind: "status",
+        title,
+        body,
+      });
+    }
+  }
+
+  function attachRepo(repo: RepoDescriptor) {
+    repos = [...repos.filter((entry) => entry.id !== repo.id), repo];
+    repoContexts.set(repo.id, createContext(repo, DEFAULT_MODEL, null));
+    sessionIndices.set(repo.id, deps.loadSessionIndex(repo));
+  }
+
+  function pickNextRepoId(excludedRepoId?: string): string | null {
+    const candidateRepos = excludedRepoId ? repos.filter((repo) => repo.id !== excludedRepoId) : repos;
+    const latest = findMostRecentlyActiveRepoId(candidateRepos, sessionIndices);
+    return latest ?? candidateRepos[0]?.id ?? null;
+  }
+
   const queueRepoPersistence = (context: RepoContext, options?: { statusOverride?: PersistedSessionStatus; currentSessionId?: string | null }) =>
     queuePersistence(
       context,
@@ -442,6 +543,54 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
 
       return deps.readOrCreateRepoInstruction(context.repo, context.policy);
     },
+    async addRepo(payload: RepoAddPayload): Promise<SessionSnapshot> {
+      if (mutationInFlight) {
+        throw new JoudoError("validation", "另一个操作正在进行中，请稍后再试。", {
+          statusCode: 409,
+          nextAction: "等待当前操作完成后重试。",
+          retryable: true,
+        });
+      }
+
+      mutationInFlight = true;
+      try {
+        const oldContext = currentContext();
+        const nextRepo = deps.registerRepo(payload.rootPath);
+
+        if (oldContext && oldContext.repo.id !== nextRepo.id && oldContext.lifecycle.activePrompt) {
+          throw new JoudoError("validation", "当前仓库有正在运行的任务，请等待完成后再添加并切换仓库。", {
+            statusCode: 409,
+            nextAction: "等待当前 prompt 执行完毕，或处理当前待审批请求后重试。",
+            retryable: true,
+          });
+        }
+
+        if (!repoContexts.has(nextRepo.id)) {
+          attachRepo(nextRepo);
+        }
+
+        currentRepoId = nextRepo.id;
+        const context = currentContext();
+        if (!context) {
+          throw new JoudoError("validation", "新仓库上下文初始化失败。", {
+            statusCode: 500,
+            nextAction: "重新添加该目录；如果问题持续存在，请检查该目录是否可读写。",
+            retryable: true,
+          });
+        }
+
+        ensureCurrentContextSummary(context, "已添加仓库", `${context.repo.name} 已加入 Joudo 当前的仓库列表。`);
+        publishCurrentSnapshot();
+
+        if (payload.initializePolicy !== false) {
+          await state.initRepoPolicy({ trusted: payload.trusted ?? false });
+        }
+
+        return snapshot();
+      } finally {
+        mutationInFlight = false;
+      }
+    },
     async initRepoPolicy(payload: RepoInitPolicyPayload = {}): Promise<RepoInitPolicyResult> {
       const context = currentContext();
       if (!context) {
@@ -501,6 +650,45 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
         snapshot: snapshot(),
         repoInstruction: instructionInit.document,
       };
+    },
+    async clearSessionHistory() {
+      const context = currentContext();
+      if (!context) {
+        throw new JoudoError("validation", "当前没有可用的仓库上下文。", {
+          statusCode: 404,
+          nextAction: "先选择一个仓库，再管理历史会话。",
+          retryable: true,
+        });
+      }
+
+      if (context.lifecycle.activePrompt || context.approvalState.approvals.length > 0 || context.status === "recovering") {
+        throw new JoudoError("validation", "当前存在进行中的任务或审批，暂时不能清空历史。", {
+          statusCode: 409,
+          nextAction: "等待当前任务完成，或先处理待审批请求后再清空历史。",
+          retryable: true,
+        });
+      }
+
+      await deps.disconnectRepoSession(context);
+      for (const [approvalId, repoId] of approvalRepoIndex.entries()) {
+        if (repoId === context.repo.id) {
+          approvalRepoIndex.delete(approvalId);
+        }
+      }
+
+      const nextContext = createContext(context.repo, context.currentModel, context.currentAgent);
+      nextContext.summary = createAuthSummary(nextContext.repo, authState, nextContext.policy);
+      pushTimeline(nextContext, {
+        kind: "status",
+        title: "已清空历史会话",
+        body: `当前仓库 ${nextContext.repo.name} 的历史记录和持久化快照已清空。`,
+      });
+      touch(nextContext, "idle");
+
+      repoContexts.set(nextContext.repo.id, nextContext);
+      sessionIndices.set(nextContext.repo.id, await deps.clearSessionHistory(nextContext.repo));
+      publishIfCurrent(nextContext.repo.id);
+      return snapshot();
     },
     async getSessionCheckpoint(checkpointNumber: number): Promise<SessionCheckpointDocument | null> {
       const context = currentContext();
@@ -594,8 +782,70 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
         });
       }
     },
+    async removeRepo(payload: RepoRemovePayload): Promise<SessionSnapshot> {
+      if (mutationInFlight) {
+        throw new JoudoError("validation", "另一个操作正在进行中，请稍后再试。", {
+          statusCode: 409,
+          nextAction: "等待当前操作完成后重试。",
+          retryable: true,
+        });
+      }
+
+      const context = repoContexts.get(payload.repoId) ?? null;
+      if (!context) {
+        throw new JoudoError("validation", `未找到仓库 ${payload.repoId}。`, {
+          statusCode: 404,
+          nextAction: "刷新仓库列表后重试。",
+          retryable: true,
+        });
+      }
+
+      if (context.lifecycle.activePrompt) {
+        throw new JoudoError("validation", "当前仓库还有进行中的任务，暂时不能移除。", {
+          statusCode: 409,
+          nextAction: "等待当前任务完成后，再移除该仓库。",
+          retryable: true,
+        });
+      }
+
+      mutationInFlight = true;
+      try {
+        context.approvalState.pendingApprovals.clear();
+        context.approvalState.approvals = [];
+        context.lifecycle.activePrompt = null;
+
+        await deps.disconnectRepoSession(context);
+        for (const [approvalId, repoId] of approvalRepoIndex.entries()) {
+          if (repoId === payload.repoId) {
+            approvalRepoIndex.delete(approvalId);
+          }
+        }
+
+        deps.removeRepo(context.repo.rootPath);
+        repos = repos.filter((repo) => repo.id !== payload.repoId);
+        repoContexts.delete(payload.repoId);
+        sessionIndices.delete(payload.repoId);
+        persistenceQueues.delete(payload.repoId);
+
+        currentRepoId = currentRepoId === payload.repoId ? pickNextRepoId(payload.repoId) : currentRepoId;
+        const nextContext = currentContext();
+        if (nextContext) {
+          refreshContextAgents(nextContext, { notifyIfSelectionMissing: true });
+          ensureCurrentContextSummary(nextContext, "已切换仓库", `已从列表中移除 ${context.repo.name}，当前仓库切换为 ${nextContext.repo.name}。`);
+        }
+
+        publishCurrentSnapshot();
+        return snapshot();
+      } finally {
+        mutationInFlight = false;
+      }
+    },
     async refreshAuth() {
       await sessionRuntime.refreshAuthState();
+      const context = currentContext();
+      if (context) {
+        refreshContextAgents(context, { notifyIfSelectionMissing: true });
+      }
       return snapshot();
     },
     subscribe(listener: Listener) {
@@ -634,15 +884,8 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
       currentRepoId = repoContexts.has(repoId) ? repoId : currentRepoId;
       const context = currentContext();
       if (context) {
-        refreshRepoPolicy(context);
-        if (!context.lifecycle.joudoSessionId || !context.summary) {
-          context.summary = createAuthSummary(context.repo, authState, context.policy);
-          pushTimeline(context, {
-            kind: "status",
-            title: "已切换仓库",
-            body: `当前会话已切换到 ${context.repo.name}。`,
-          });
-        }
+        refreshContextAgents(context, { notifyIfSelectionMissing: true });
+        ensureCurrentContextSummary(context, "已切换仓库", `当前会话已切换到 ${context.repo.name}。`);
       }
       void sessionRuntime.refreshAuthState().catch((error: unknown) => {
         console.warn("[bridge] Auth refresh on repo switch failed:", error instanceof Error ? error.message : error);
@@ -725,6 +968,87 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
         mutationInFlight = false;
       }
     },
+    async setAgent(agent: string | null) {
+      if (mutationInFlight) {
+        throw new JoudoError("validation", "另一个操作正在进行中，请稍后再试。", {
+          statusCode: 409,
+          nextAction: "等待当前操作完成后重试。",
+          retryable: true,
+        });
+      }
+      mutationInFlight = true;
+      try {
+        const context = currentContext();
+        if (!context) {
+          throw new JoudoError("validation", "当前没有可用的仓库上下文。", {
+            statusCode: 404,
+            nextAction: "先选择一个仓库，再切换执行 agent。",
+            retryable: true,
+          });
+        }
+
+        const nextAgent = agent?.trim() ? agent.trim() : null;
+        refreshContextAgents(context, { notifyIfSelectionMissing: false });
+
+        if (nextAgent && !context.availableAgents.includes(nextAgent)) {
+          throw new JoudoError("validation", `当前 agent ${nextAgent} 不在允许列表中。`, {
+            statusCode: 400,
+            nextAction:
+              context.availableAgents.length > 0
+                ? `改用这些 agent 之一：${context.availableAgents.join(" / ")}，或切回默认模式。`
+                : "当前没有可用的自定义 agent。请先在 Copilot 全局目录或当前仓库的 .github/agents 中添加它。",
+            retryable: true,
+          });
+        }
+
+        if (context.lifecycle.activePrompt || context.approvalState.approvals.length > 0 || context.status === "recovering") {
+          throw new JoudoError("validation", "当前状态不允许切换执行 agent。", {
+            statusCode: 409,
+            nextAction: "等待当前任务、审批或恢复流程结束后，再切换 agent。",
+            retryable: true,
+          });
+        }
+
+        if (context.currentAgent === nextAgent) {
+          return snapshot();
+        }
+
+        const previousAgent = context.currentAgent;
+        context.currentAgent = nextAgent;
+
+        const previousLabel = previousAgent ?? "默认模式";
+        const nextLabel = nextAgent ?? "默认模式";
+        let body = `后续会话将从 ${previousLabel} 切换为 ${nextLabel}。`;
+        if (context.lifecycle.session) {
+          await deps.disconnectRepoSession(context);
+          body = `${body} 当前空闲会话已断开，下一条提示词会按新 agent 设置重新创建 ACP 会话。`;
+        }
+
+        pushTimeline(context, {
+          kind: "status",
+          title: "已切换执行 agent",
+          body,
+        });
+        context.summary = {
+          title: "执行 agent 已切换",
+          body,
+          steps: createSummarySteps({ timeline: context.timeline, status: "completed" }),
+          executedCommands: [],
+          changedFiles: [],
+          checks: [
+            nextAgent ? `当前仓库默认 agent 已切换为 ${nextAgent}` : "当前仓库已切回默认 agent 模式",
+          ],
+          risks: createPolicyRiskMessages(context.policy),
+          nextAction: "继续发送下一条提示词，bridge 会按新的 agent 设置创建或续接会话。",
+        };
+        touch(context, "idle");
+        queueRepoPersistence(context);
+        publishIfCurrent(context.repo.id);
+        return snapshot();
+      } finally {
+        mutationInFlight = false;
+      }
+    },
     async resumeHistoricalSession(joudoSessionId: string) {
       return sessionOrchestration.resumeHistoricalSession(joudoSessionId);
     },
@@ -732,6 +1056,10 @@ export function createMvpState(options: CreateMvpStateOptions = {}) {
       return sessionOrchestration.recoverHistoricalSession(joudoSessionId);
     },
     async submitPrompt(prompt: string) {
+      const context = currentContext();
+      if (context) {
+        await refreshContextAgentsForPrompt(context);
+      }
       return sessionOrchestration.runPrompt(prompt);
     },
     async resolveApproval(approvalId: string, decision: ApprovalDecision) {

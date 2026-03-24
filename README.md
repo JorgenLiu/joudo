@@ -95,6 +95,10 @@ Joudo 已经不是纯概念验证。
 - 已安装 Node.js、Corepack 和 `pnpm`
 - Copilot CLI 已可登录
 
+以上前置条件针对开发环境成立。
+
+打包后的 desktop `.app` 现在会随包携带受控 Node runtime，正常使用不再依赖宿主机预装 Node；但本仓库里执行构建和打包仍然需要本机有 Node/Corepack/pnpm。
+
 ### 安装依赖
 
 ```bash
@@ -186,7 +190,44 @@ corepack pnpm typecheck
 corepack pnpm --filter @joudo/bridge test
 corepack pnpm --filter @joudo/web test
 corepack pnpm build
+corepack pnpm build:desktop
 ```
+
+## Desktop 打包
+
+当前仓库已经把默认 desktop 打包路径收敛为稳定 `.app`：
+
+```bash
+corepack pnpm build:desktop
+```
+
+默认产物位置：
+
+- `apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app`
+
+当前 `.app` 会在打包阶段自动执行 `pnpm prepare:bundle-runtime`，把 bridge 运行依赖、bridge/web 构建产物和固定 Node runtime 一起放进 app resources。
+
+因此 packaged desktop 启动 bridge 时会优先且只使用 app 内自带的 Node，不会再去抢宿主机 Node。
+
+如果要回归验证 packaged `.app` 的桌面管理链路，可以直接运行：
+
+```bash
+corepack pnpm validate:desktop:packaged
+```
+
+这个检查会实际启动 `Joudo.app`，验证 bridge 自动拉起、TOTP 重绑与重新认证、临时 repo 初始化、会话历史清空，以及 packaged app 重启后 bridge/TOTP 是否仍正常工作。
+
+如果要继续尝试 `.dmg` 安装包，可显式执行：
+
+```bash
+corepack pnpm build:desktop:dmg
+```
+
+当前 `.dmg` 生成已经切换到更简单的 `hdiutil create -srcfolder Joudo.app` 路径，避开 Tauri create-dmg 辅助脚本在这台 Ventura 开发机上的临时磁盘镜像卸载失败问题。
+
+默认 `.dmg` 产物位置：
+
+- `apps/desktop/src-tauri/target/release/bundle/dmg/Joudo_0.1.0_x64.dmg`
 
 ## 仓库结构
 

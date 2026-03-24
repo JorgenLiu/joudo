@@ -421,6 +421,13 @@ export async function initializeSessionIndex(repo: RepoDescriptor): Promise<{ cr
   };
 }
 
+export async function clearSessionHistory(repo: RepoDescriptor): Promise<SessionIndexDocument> {
+  const emptyIndex = createEmptySessionIndex(repo);
+  await rm(sessionsDir(repo.rootPath), { recursive: true, force: true }).catch(() => {});
+  await saveSessionIndex(repo.rootPath, emptyIndex);
+  return emptyIndex;
+}
+
 export async function saveSessionSnapshot(input: {
   repoRoot: string;
   sessionId: string;

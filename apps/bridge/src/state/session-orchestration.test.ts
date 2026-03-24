@@ -167,6 +167,13 @@ function createTestDeps(context: RepoContext, session?: TestSession) {
     policy: null,
     model: "gpt-4o",
     availableModels: ["gpt-4o"],
+    agent: null,
+    availableAgents: [],
+    agentCatalog: {
+      globalCount: 0,
+      repoCount: 0,
+      totalCount: 0,
+    },
     auth: { status: "authenticated", message: "ok" },
     lastPrompt: null,
     approvals: [],

@@ -18,6 +18,8 @@
 - `.joudo/sessions-index.json`
 - `.joudo/sessions/<id>/snapshot.json`
 
+注意：snapshot 当前不会持久化运行时 agent 信息。`agent`、`availableAgents` 和 `agentCatalog` 只存在于 bridge 的 live snapshot 中。
+
 这些对象共同支撑：
 
 - 历史会话列表
@@ -52,6 +54,7 @@
 
 - 恢复 summary、timeline、activity、rollback 信息
 - 不把旧审批重新当成仍可点击的实时请求
+- 不恢复旧的 custom agent 选择；当前 agent 环境会在 bridge 运行时重新扫描
 - 用户基于历史记录重新发起下一轮
 
 ## 当前恢复约束

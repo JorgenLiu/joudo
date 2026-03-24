@@ -6,6 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
+    "beforeBundleCommand": "pnpm prepare:bundle-runtime",
     "devUrl": "http://127.0.0.1:1421",
     "frontendDist": "../dist"
   },
@@ -14,9 +15,9 @@
     "windows": [
       {
         "label": "main",
-        "title": "Joudo Desktop",
-        "width": 420,
-        "height": 620,
+        "title": "Joudo",
+        "width": 440,
+        "height": 580,
         "visible": false,
         "resizable": true,
         "fullscreen": false
@@ -28,7 +29,17 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "createUpdaterArtifacts": false
+    "targets": "app",
+    "createUpdaterArtifacts": false,
+    "resources": {
+      "bundle-resources/": ""
+    },
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.icns"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "13.0"
+    }
   }
 }

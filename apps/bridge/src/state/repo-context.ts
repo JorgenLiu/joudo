@@ -1,10 +1,22 @@
-import type { RepoDescriptor } from "@joudo/shared";
+import type { RepoDescriptor, SessionAgentCatalog } from "@joudo/shared";
 
 import { loadRepoPolicy } from "../policy/index.js";
 import { createInitialSummary } from "./summaries.js";
 import type { RepoContext } from "./types.js";
 
-export function createRepoContext(repo: RepoDescriptor, defaultModel = "gpt-5-mini"): RepoContext {
+const EMPTY_AGENT_CATALOG: SessionAgentCatalog = {
+  globalCount: 0,
+  repoCount: 0,
+  totalCount: 0,
+};
+
+export function createRepoContext(
+  repo: RepoDescriptor,
+  defaultModel = "gpt-5-mini",
+  defaultAgent: string | null = null,
+  availableAgents: string[] = [],
+  agentCatalog: SessionAgentCatalog = EMPTY_AGENT_CATALOG,
+): RepoContext {
   const timestamp = new Date().toISOString();
   const policy = loadRepoPolicy(repo.rootPath);
   repo.policyState = policy.state;
@@ -12,6 +24,9 @@ export function createRepoContext(repo: RepoDescriptor, defaultModel = "gpt-5-mi
     repo,
     policy,
     currentModel: defaultModel,
+    currentAgent: defaultAgent,
+    availableAgents,
+    agentCatalog,
     status: "idle",
     lastPrompt: null,
     timeline: [

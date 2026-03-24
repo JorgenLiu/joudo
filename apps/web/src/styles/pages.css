@@ -2,18 +2,30 @@
 
 .instructionPanel {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .instructionBlock {
   display: grid;
-  gap: 6px;
-  padding: 10px;
+  gap: 10px;
+  padding: 12px;
+}
+
+.moduleBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.moduleBlockHeader strong,
+.moduleBlockHeader small {
+  margin: 0;
 }
 
 .instructionReadonly {
   margin: 0;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-input);
   overflow-x: auto;
@@ -28,8 +40,8 @@
 .instructionNotes {
   width: 100%;
   resize: vertical;
-  min-height: 90px;
-  padding: 8px 10px;
+  min-height: 112px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--panel-border);
   background: var(--bg-input);
@@ -45,6 +57,7 @@
 .instructionActions {
   display: flex;
   justify-content: flex-start;
+  padding-top: 2px;
 }
 
 /* ===== Session History ===== */
@@ -123,11 +136,6 @@
   font-family: "SFMono-Regular", "Menlo", "Cascadia Code", monospace;
 }
 
-.authFootnote {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
 .authActions {
   display: flex;
   justify-content: flex-start;
@@ -204,7 +212,7 @@
 }
 
 
-/* ===== Auth FAQ collapsible ===== */
+/* ===== Shared collapsible text ===== */
 
 .authFaqCollapsible {
   border: none;

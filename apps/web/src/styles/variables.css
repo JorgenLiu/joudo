@@ -1,35 +1,36 @@
-/* ===== Joudo — mobile-first webapp styles (VSCode Dark + shadcn) ===== */
+/* ===== Joudo — Quiet Sanctuary palette ===== */
 
 :root {
   color-scheme: dark light;
-  font-family: -apple-system, "Inter", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-family: "Manrope", -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  background: #1e1e1e;
-  color: #cccccc;
-  --bg-base: #1e1e1e;
-  --bg-surface: #252526;
-  --bg-elevated: #2d2d2d;
-  --bg-input: #3c3c3c;
-  --panel-bg: #252526;
-  --panel-border: #3c3c3c;
-  --text-primary: #cccccc;
-  --text-muted: #858585;
-  --ink: #d4d4d4;
-  --accent: #007acc;
-  --accent-hover: #1a8ad4;
-  --accent-subtle: rgba(0, 122, 204, 0.15);
-  --warning: #cca700;
-  --warning-subtle: rgba(204, 167, 0, 0.12);
-  --danger: #f14c4c;
-  --danger-subtle: rgba(241, 76, 76, 0.12);
-  --success: #4ec9b0;
-  --success-subtle: rgba(78, 201, 176, 0.12);
-  --info: #75beff;
-  --info-subtle: rgba(117, 190, 255, 0.1);
-  --shadow: none;
-  --radius: 6px;
-  --radius-sm: 4px;
+  background: #13211E;
+  color: #D8DED5;
+  --bg-base: #13211E;
+  --bg-surface: #1A2B27;
+  --bg-elevated: #20332F;
+  --bg-input: rgba(243, 240, 232, 0.08);
+  --panel-bg: rgba(243, 240, 232, 0.05);
+  --panel-border: rgba(216, 222, 213, 0.12);
+  --chrome-bg: rgba(26, 43, 39, 0.92);
+  --text-primary: #F3F0E8;
+  --text-muted: #96A79F;
+  --ink: #F3F0E8;
+  --accent: #6C9A78;
+  --accent-hover: #5A8767;
+  --accent-subtle: rgba(108, 154, 120, 0.16);
+  --warning: #B88A4A;
+  --warning-subtle: rgba(184, 138, 74, 0.14);
+  --danger: #A05547;
+  --danger-subtle: rgba(160, 85, 71, 0.14);
+  --success: #7FAF8D;
+  --success-subtle: rgba(127, 175, 141, 0.14);
+  --info: #8AA1A7;
+  --info-subtle: rgba(138, 161, 167, 0.14);
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+  --radius: 18px;
+  --radius-sm: 12px;
   --ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent);
   --tab-height: 56px;
   --header-height: auto;
@@ -37,29 +38,30 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    background: #ffffff;
-    color: #1e1e1e;
-    --bg-base: #ffffff;
-    --bg-surface: #f3f3f3;
-    --bg-elevated: #e8e8e8;
-    --bg-input: #ffffff;
-    --panel-bg: #f3f3f3;
-    --panel-border: #d4d4d4;
-    --text-primary: #1e1e1e;
-    --text-muted: #6e6e6e;
-    --ink: #1e1e1e;
-    --accent: #005fb8;
-    --accent-hover: #004e9a;
-    --accent-subtle: rgba(0, 95, 184, 0.1);
-    --warning: #9d7600;
-    --warning-subtle: rgba(157, 118, 0, 0.1);
-    --danger: #cd3131;
-    --danger-subtle: rgba(205, 49, 49, 0.1);
-    --success: #16825d;
-    --success-subtle: rgba(22, 130, 93, 0.1);
-    --info: #005fb8;
-    --info-subtle: rgba(0, 95, 184, 0.08);
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    background: #F3F0E8;
+    color: #20332F;
+    --bg-base: #F3F0E8;
+    --bg-surface: #E8E5DC;
+    --bg-elevated: #DDD9D0;
+    --bg-input: #F3F0E8;
+    --panel-bg: #E8E5DC;
+    --panel-border: rgba(19, 33, 30, 0.12);
+    --chrome-bg: rgba(232, 229, 220, 0.92);
+    --text-primary: #20332F;
+    --text-muted: #5E7E72;
+    --ink: #13211E;
+    --accent: #4E8A5E;
+    --accent-hover: #3D7A4D;
+    --accent-subtle: rgba(78, 138, 94, 0.12);
+    --warning: #9A7236;
+    --warning-subtle: rgba(154, 114, 54, 0.12);
+    --danger: #8C4539;
+    --danger-subtle: rgba(140, 69, 57, 0.12);
+    --success: #4E8A5E;
+    --success-subtle: rgba(78, 138, 94, 0.1);
+    --info: #5E7E72;
+    --info-subtle: rgba(94, 126, 114, 0.08);
+    --shadow: 0 2px 8px rgba(19, 33, 30, 0.08);
     --ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent);
   }
 }
@@ -72,6 +74,16 @@ body {
   margin: 0;
   min-width: 320px;
   overscroll-behavior-y: none;
+  background:
+    radial-gradient(circle at top, rgba(184, 138, 74, 0.1), transparent 32%),
+    radial-gradient(circle at 20% 12%, rgba(108, 154, 120, 0.14), transparent 26%),
+    linear-gradient(180deg, #13211e, #0d1614 74%);
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    background: var(--bg-base);
+  }
 }
 
 button,

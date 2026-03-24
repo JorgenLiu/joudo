@@ -47,20 +47,54 @@ const sessionIndex: SessionIndexDocument = {
 
 describe("SessionHistoryPanel", () => {
   it("renders concise recovery notes for attach and history-only entries", () => {
-    render(<SessionHistoryPanel sessionIndex={sessionIndex} isRecoveringSession={false} onRecoverSession={vi.fn()} />);
+    render(
+      <SessionHistoryPanel
+        sessionIndex={sessionIndex}
+        isRecoveringSession={false}
+        isClearingSessionHistory={false}
+        onRecoverSession={vi.fn()}
+        onClearSessionHistory={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("Joudo 会先恢复记录，再尝试接回旧会话。失败时会退回只读历史。")).toBeInTheDocument();
     expect(screen.getByText("这条记录只能恢复记录。旧审批不会在重连后继续等待。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "恢复并尝试接管" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "只恢复记录" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "清空当前 repo 历史" })).toBeInTheDocument();
   });
 
   it("forwards the selected history session id when the user starts recovery", () => {
     const onRecoverSession = vi.fn();
 
-    render(<SessionHistoryPanel sessionIndex={sessionIndex} isRecoveringSession={false} onRecoverSession={onRecoverSession} />);
+    render(
+      <SessionHistoryPanel
+        sessionIndex={sessionIndex}
+        isRecoveringSession={false}
+        isClearingSessionHistory={false}
+        onRecoverSession={onRecoverSession}
+        onClearSessionHistory={vi.fn()}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "恢复并尝试接管" }));
 
     expect(onRecoverSession).toHaveBeenCalledWith("joudo-1");
+  });
+
+  it("forwards clear history action", () => {
+    const onClearSessionHistory = vi.fn();
+
+    render(
+      <SessionHistoryPanel
+        sessionIndex={sessionIndex}
+        isRecoveringSession={false}
+        isClearingSessionHistory={false}
+        onRecoverSession={vi.fn()}
+        onClearSessionHistory={onClearSessionHistory}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "清空当前 repo 历史" }));
+
+    expect(onClearSessionHistory).toHaveBeenCalledTimes(1);
   });
 });

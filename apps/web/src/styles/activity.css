@@ -6,10 +6,12 @@
 
 .activityCard {
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: 10px;
+  padding: 12px;
   border-radius: var(--radius);
-  background: var(--bg-elevated);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
 }
 
 .activityHeader {
@@ -32,14 +34,15 @@
 
 .activityMetaList {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
 }
 
 .activityMetaList div {
-  padding: 6px 8px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-input);
+  border: 1px solid rgba(216, 222, 213, 0.06);
 }
 
 .activityMetaList dt {
@@ -63,7 +66,7 @@
 
 .activityCheckpointSection {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .activitySubsectionHeader {
@@ -87,16 +90,16 @@
 
 .activityCheckpointList {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .activityCheckpointCard {
   display: grid;
-  gap: 4px;
-  padding: 10px;
+  gap: 6px;
+  padding: 12px;
   border-radius: var(--radius);
-  border: 1px solid rgba(78, 201, 176, 0.25);
-  background: var(--success-subtle);
+  border: 1px solid rgba(127, 175, 141, 0.25);
+  background: rgba(127, 175, 141, 0.12);
 }
 
 .activityCheckpointHeader {
@@ -120,7 +123,7 @@
 
 .activityCheckpointActions button,
 .activityGhostButton {
-  padding: 5px 10px;
+  padding: 6px 12px;
   min-height: 44px;
   border-radius: var(--radius-sm);
   background: var(--success-subtle);
@@ -155,11 +158,11 @@
 
 .activityRollbackCard {
   display: grid;
-  gap: 6px;
-  padding: 10px;
+  gap: 8px;
+  padding: 12px;
   border-radius: var(--radius);
-  border: 1px solid rgba(78, 201, 176, 0.25);
-  background: var(--bg-elevated);
+  border: 1px solid rgba(184, 138, 74, 0.18);
+  background: linear-gradient(180deg, rgba(184, 138, 74, 0.11), rgba(243, 240, 232, 0.03));
 }
 
 .activityRollbackCard p {
@@ -184,14 +187,14 @@
 .activityBlockerList,
 .activityItemList {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .activityBlocker,
 .activityItem {
   display: grid;
-  gap: 3px;
-  padding: 10px;
+  gap: 5px;
+  padding: 12px;
   border-radius: var(--radius);
   border: 1px solid var(--panel-border);
   background: var(--bg-elevated);

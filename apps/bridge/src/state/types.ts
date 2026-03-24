@@ -6,10 +6,13 @@ import type {
   ApprovalRequest,
   ApprovalType,
   PermissionAuditEntry,
+  RepoAddPayload,
   RepoInitPolicyPayload,
   RepoInitPolicyResult,
   RepoInstructionDocument,
   RepoPolicyRuleDeletePayload,
+  RepoRemovePayload,
+  SessionAgentCatalog,
   SessionCheckpointDocument,
   SessionIndexDocument,
   SessionSnapshot,
@@ -75,6 +78,9 @@ export type RepoContext = {
   repo: RepoDescriptor;
   policy: LoadedRepoPolicy;
   currentModel: string;
+  currentAgent: string | null;
+  availableAgents: string[];
+  agentCatalog: SessionAgentCatalog;
   status: SessionStatus;
   lastPrompt: string | null;
   timeline: SessionTimelineEntry[];
@@ -92,15 +98,19 @@ export interface MvpState {
   getSnapshot(): SessionSnapshot;
   getSessionIndex(): SessionIndexDocument | null;
   getRepoInstruction(): Promise<RepoInstructionDocument | null>;
+  addRepo(payload: RepoAddPayload): Promise<SessionSnapshot>;
   initRepoPolicy(payload?: RepoInitPolicyPayload): Promise<RepoInitPolicyResult>;
+  clearSessionHistory(): Promise<SessionSnapshot>;
   getSessionCheckpoint(checkpointNumber: number): Promise<SessionCheckpointDocument | null>;
   rollbackLatestTurn(): Promise<SessionSnapshot>;
   updateRepoInstruction(userNotes: string): Promise<RepoInstructionDocument | null>;
   deleteRepoPolicyRule(payload: RepoPolicyRuleDeletePayload): Promise<SessionSnapshot>;
+  removeRepo(payload: RepoRemovePayload): Promise<SessionSnapshot>;
   refreshAuth(): Promise<SessionSnapshot>;
   subscribe(listener: Listener): () => void;
   selectRepo(repoId: string): SessionSnapshot;
   setModel(model: string): Promise<SessionSnapshot>;
+  setAgent(agent: string | null): Promise<SessionSnapshot>;
   resumeHistoricalSession(joudoSessionId: string): Promise<SessionSnapshot>;
   recoverHistoricalSession(joudoSessionId: string): Promise<SessionSnapshot>;
   submitPrompt(prompt: string): Promise<SessionSnapshot>;

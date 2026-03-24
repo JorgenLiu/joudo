@@ -48,6 +48,13 @@ export const emptySnapshot: SessionSnapshot = {
   policy: null,
   model: "gpt-5-mini",
   availableModels: ["gpt-5-mini"],
+  agent: null,
+  availableAgents: [],
+  agentCatalog: {
+    globalCount: 0,
+    repoCount: 0,
+    totalCount: 0,
+  },
   auth: {
     status: "unknown",
     message: "正在检查 Copilot CLI 登录状态。",
@@ -93,17 +100,39 @@ export function normalizeSnapshot(next: SessionSnapshot | null | undefined): Ses
   const availableModels = Array.isArray(next.availableModels) && next.availableModels.length > 0
     ? next.availableModels
     : emptySnapshot.availableModels;
+  const availableAgents = Array.isArray(next.availableAgents)
+    ? next.availableAgents.filter((candidate): candidate is string => typeof candidate === "string" && candidate.length > 0)
+    : emptySnapshot.availableAgents;
+  const agentCatalog = next.agentCatalog && typeof next.agentCatalog === "object"
+    ? {
+        globalCount:
+          typeof next.agentCatalog.globalCount === "number" && Number.isFinite(next.agentCatalog.globalCount)
+            ? next.agentCatalog.globalCount
+            : emptySnapshot.agentCatalog.globalCount,
+        repoCount:
+          typeof next.agentCatalog.repoCount === "number" && Number.isFinite(next.agentCatalog.repoCount)
+            ? next.agentCatalog.repoCount
+            : emptySnapshot.agentCatalog.repoCount,
+        totalCount:
+          typeof next.agentCatalog.totalCount === "number" && Number.isFinite(next.agentCatalog.totalCount)
+            ? next.agentCatalog.totalCount
+            : emptySnapshot.agentCatalog.totalCount,
+      }
+    : emptySnapshot.agentCatalog;
 
   return {
     ...emptySnapshot,
     ...next,
     sessionId: typeof next.sessionId === "string" && next.sessionId.length > 0 ? next.sessionId : emptySnapshot.sessionId,
     model: typeof next.model === "string" && next.model.length > 0 ? next.model : emptySnapshot.model,
+    agent: typeof next.agent === "string" && next.agent.length > 0 ? next.agent : null,
     updatedAt: typeof next.updatedAt === "string" && next.updatedAt.length > 0 ? next.updatedAt : new Date().toISOString(),
     approvals,
     timeline,
     auditLog,
     availableModels,
+    availableAgents,
+    agentCatalog,
     summary: normalizeSummary(next.summary),
     auth: next.auth && typeof next.auth === "object"
       ? {
@@ -130,9 +159,11 @@ export async function readJson<T>(input: RequestInfo, init?: RequestInit): Promi
   try {
     const token = getStoredToken();
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
       ...(init?.headers as Record<string, string> | undefined),
     };
+    if (init?.body !== undefined && !Object.keys(headers).some((key) => key.toLowerCase() === "content-type")) {
+      headers["Content-Type"] = "application/json";
+    }
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }

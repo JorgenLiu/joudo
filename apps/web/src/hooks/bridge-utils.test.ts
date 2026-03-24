@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { emptySnapshot, normalizeSnapshot } from "./bridge-utils";
+import { emptySnapshot, normalizeSnapshot, readJson } from "./bridge-utils";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("normalizeSnapshot", () => {
   it("returns emptySnapshot for null input", () => {
@@ -22,6 +26,8 @@ describe("normalizeSnapshot", () => {
       sessionId: "my-session",
       status: "running" as const,
       model: "gpt-5",
+      agent: "reviewer",
+      availableAgents: ["reviewer"],
       updatedAt: "2026-03-22T10:00:00.000Z",
       approvals: [],
       timeline: [],
@@ -31,6 +37,7 @@ describe("normalizeSnapshot", () => {
     expect(result.sessionId).toBe("my-session");
     expect(result.status).toBe("running");
     expect(result.model).toBe("gpt-5");
+    expect(result.agent).toBe("reviewer");
     expect(result.updatedAt).toBe("2026-03-22T10:00:00.000Z");
   });
 
@@ -49,6 +56,7 @@ describe("normalizeSnapshot", () => {
       timeline: "bad",
       auditLog: undefined,
       availableModels: [],
+      availableAgents: [null, "reviewer", 123],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
     const result = normalizeSnapshot(input);
@@ -56,6 +64,7 @@ describe("normalizeSnapshot", () => {
     expect(result.timeline).toEqual([]);
     expect(result.auditLog).toEqual([]);
     expect(result.availableModels).toEqual(emptySnapshot.availableModels);
+    expect(result.availableAgents).toEqual(["reviewer"]);
   });
 
   it("normalizes auth with invalid status to default", () => {
@@ -134,5 +143,45 @@ describe("normalizeSnapshot", () => {
     const result = normalizeSnapshot(input);
     expect(typeof result.updatedAt).toBe("string");
     expect(result.updatedAt.length).toBeGreaterThan(0);
+  });
+});
+
+describe("readJson", () => {
+  it("does not set content-type for POST requests without a body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get: vi.fn().mockReturnValue("application/json"),
+      },
+      json: vi.fn().mockResolvedValue({ ok: true }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await readJson<{ ok: boolean }>("/api/repo/sessions/clear", { method: "POST" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: "POST" });
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.headers).not.toHaveProperty("Content-Type");
+  });
+
+  it("sets content-type for requests with a JSON body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get: vi.fn().mockReturnValue("application/json"),
+      },
+      json: vi.fn().mockResolvedValue({ ok: true }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await readJson<{ ok: boolean }>("/api/session/recover", {
+      method: "POST",
+      body: JSON.stringify({ joudoSessionId: "test-session" }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.headers).toMatchObject({
+      "Content-Type": "application/json",
+    });
   });
 });

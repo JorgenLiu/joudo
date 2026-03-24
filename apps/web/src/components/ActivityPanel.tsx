@@ -317,7 +317,7 @@ export function ActivityPanel({
                     <pre>{selectedCheckpoint.content}</pre>
                   </>
                 ) : (
-                  <p className="emptyState">正在读取当前 checkpoint 内容…</p>
+                  <p className="emptyState checkpointOverlayEmpty">正在读取当前 checkpoint 内容…</p>
                 )}
               </div>
             </div>
@@ -358,7 +358,7 @@ export function ActivityPanel({
         </div>
       ) : (
         <div className="activityCard">
-          <p className="emptyState">bridge 还没有生成执行轨迹。发送第一条提示词后，这里会显示当前阶段、阻塞点和最近动作。</p>
+          <p className="emptyState">当前没有执行轨迹。</p>
         </div>
       )}
     </div>

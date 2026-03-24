@@ -16,37 +16,27 @@
   border: 1px solid rgba(78, 201, 176, 0.18);
 }
 
-.onboardingStepList {
+.onboardingStatus {
   display: grid;
   gap: 10px;
-}
-
-.onboardingStep {
-  display: grid;
-  gap: 4px;
   padding: 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
 }
 
-.onboardingStep.active {
-  border-color: rgba(78, 201, 176, 0.35);
-  box-shadow: 0 0 0 1px rgba(78, 201, 176, 0.08) inset;
-}
-
-.onboardingStep p,
-.onboardingStep small,
-.onboardingStep strong {
+.onboardingStatus p,
+.onboardingStatus small,
+.onboardingStatus strong {
   margin: 0;
 }
 
-.onboardingStep p {
+.onboardingStatus p {
   font-size: 0.86rem;
   color: var(--ink);
 }
 
-.onboardingStep small {
+.onboardingStatus small {
   font-size: 0.8rem;
   color: var(--text-muted);
 }

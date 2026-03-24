@@ -99,6 +99,13 @@ const snapshot: SessionSnapshot = {
   },
   model: "gpt-5-mini",
   availableModels: ["gpt-5-mini", "gpt-5.4"],
+  agent: null,
+  availableAgents: [],
+  agentCatalog: {
+    globalCount: 0,
+    repoCount: 0,
+    totalCount: 0,
+  },
   auth: {
     status: "authenticated",
     message: "authenticated",
@@ -129,16 +136,16 @@ describe("PolicyPanel", () => {
   it("renders structured policy rules and recent persisted changes", () => {
     render(<PolicyPanel snapshot={snapshot} onDeleteRule={vi.fn()} />);
 
-    expect(screen.getByText("Repo Policy")).toBeInTheDocument();
-    expect(screen.getByText("已加载")).toBeInTheDocument();
-    expect(screen.getByText("当前有 2 条受控写入规则")).toBeInTheDocument();
+    expect(screen.getByText("Policy")).toBeInTheDocument();
+    expect(screen.getByText("ready")).toBeInTheDocument();
+    expect(screen.getByText("2 条受控写入")).toBeInTheDocument();
     expect(screen.getByText("总规则数")).toBeInTheDocument();
-    expect(screen.getAllByText("来自审批持久化").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("persisted").length).toBeGreaterThan(0);
     expect(screen.getAllByText("./src/generated").length).toBeGreaterThan(0);
     expect(screen.getByText("./src/index.ts")).toBeInTheDocument();
     expect(screen.getByText("git status")).toBeInTheDocument();
     expect(screen.getAllByText("由 ./src/generated/routes.ts 归一化为 ./src/generated").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Policy 文件：\/tmp\/demo-repo\/\.github\/joudo-policy\.yml/)).toBeInTheDocument();
+    expect(screen.getByText("/tmp/demo-repo/.github/joudo-policy.yml")).toBeInTheDocument();
   });
 
   it("confirms before deleting a rule and forwards the rule to the callback", async () => {

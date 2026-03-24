@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { TotpSetupResponse, TotpVerifyResponse } from "@joudo/shared";
 
+import { BrandSealIcon } from "./BrandSealIcon";
 import { bridgeOrigin } from "../hooks/bridge-utils";
 
 type TotpGateProps = {
@@ -114,10 +115,7 @@ export function TotpGate({ onAuthenticated }: TotpGateProps) {
     <div className="totpGate">
       <div className="totpCard">
         <div className="totpLogo">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="10" fill="var(--accent)" />
-            <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="20" fontWeight="700" fontFamily="system-ui">J</text>
-          </svg>
+          <BrandSealIcon size={40} />
         </div>
         <h1 className="totpTitle">Joudo</h1>
         <p className="totpSubtitle">安全验证</p>
@@ -158,15 +156,13 @@ export function TotpGate({ onAuthenticated }: TotpGateProps) {
 
         {setupInfo?.available ? (
           <div className="totpSetupCard">
-            <p className="totpFootnote">
-              {setupInfo.message}
-            </p>
+            <p className="totpFootnote">{setupInfo.message}</p>
             {setupInfo.secret && (
               <code className="totpSecretBlock">{setupInfo.secret}</code>
             )}
             {setupInfo.uri && (
               <details className="authFaqCollapsible">
-                <summary>显示 otpauth URI</summary>
+                <summary>显示 URI</summary>
                 <div className="authFaqContent">
                   <code>{setupInfo.uri}</code>
                 </div>
@@ -174,9 +170,7 @@ export function TotpGate({ onAuthenticated }: TotpGateProps) {
             )}
           </div>
         ) : (
-          <p className="totpFootnote">
-            首次使用？请在本机打开 Joudo 桌面壳，或查看 bridge 启动日志里的二维码完成绑定。
-          </p>
+          <p className="totpFootnote">请在桌面端完成设备绑定。</p>
         )}
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type {
   ApprovalResolutionPayload,
   ApprovalRequest,
+  SessionAgentSelectionPayload,
   SessionCheckpointDocument,
   SessionModelSelectionPayload,
   SessionSnapshot,
@@ -19,6 +20,7 @@ export function useSessionState() {
   const [prompt, setPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSettingModel, setIsSettingModel] = useState(false);
+  const [isSettingAgent, setIsSettingAgent] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<SessionCheckpointDocument | null>(null);
   const [isLoadingCheckpoint, setIsLoadingCheckpoint] = useState(false);
   const [isRollingBack, setIsRollingBack] = useState(false);
@@ -172,6 +174,39 @@ export function useSessionState() {
     }
   }
 
+  async function setAgent(agent: string | null) {
+    if (agent === ctx.snapshot.agent) {
+      return;
+    }
+
+    try {
+      setIsSettingAgent(true);
+      ctx.setErrorState(null);
+      const nextSnapshot = await readJson<SessionSnapshot>(`${bridgeOrigin}/api/session/agent`, {
+        method: "POST",
+        body: JSON.stringify({ agent } satisfies SessionAgentSelectionPayload),
+      });
+      ctx.setSnapshot(nextSnapshot);
+      await ctx.refreshRepoScopedState({ preserveUnsavedInstructionDraft: true });
+    } catch (error) {
+      ctx.setErrorState(
+        toErrorState(
+          error,
+          {
+            code: "validation",
+            message: "切换执行 agent 失败。",
+            nextAction: "等待当前状态允许切换后，再重新选择 agent。",
+            retryable: true,
+          },
+          () => setAgent(agent),
+          "重试切换 agent",
+        ),
+      );
+    } finally {
+      setIsSettingAgent(false);
+    }
+  }
+
   async function resolveApproval(request: ApprovalRequest, decision: ApprovalResolutionPayload["decision"]) {
     try {
       ctx.setErrorState(null);
@@ -266,6 +301,7 @@ export function useSessionState() {
     setPrompt,
     isSubmitting,
     isSettingModel,
+    isSettingAgent,
     activeApproval,
     latestPersistedApproval,
     promptHint,
@@ -277,6 +313,7 @@ export function useSessionState() {
     selectRepo,
     submitPrompt,
     setModel,
+    setAgent,
     resolveApproval,
     openCheckpoint,
     rollbackLatestTurn,

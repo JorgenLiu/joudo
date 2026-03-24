@@ -5,7 +5,9 @@ import { persistedSessionStatusLabel } from "./display";
 type SessionHistoryPanelProps = {
   sessionIndex: SessionIndexDocument | null;
   isRecoveringSession: boolean;
+  isClearingSessionHistory: boolean;
   onRecoverSession: (joudoSessionId: string) => void | Promise<void>;
+  onClearSessionHistory: () => void | Promise<void>;
 };
 
 function recoveryNote(entry: NonNullable<SessionIndexDocument>["sessions"][number]) {
@@ -32,12 +34,28 @@ function recoveryActionLabel(entry: NonNullable<SessionIndexDocument>["sessions"
   return entry.recoveryMode === "attach" ? "恢复并尝试接管" : "只恢复记录";
 }
 
-export function SessionHistoryPanel({ sessionIndex, isRecoveringSession, onRecoverSession }: SessionHistoryPanelProps) {
+export function SessionHistoryPanel({
+  sessionIndex,
+  isRecoveringSession,
+  isClearingSessionHistory,
+  onRecoverSession,
+  onClearSessionHistory,
+}: SessionHistoryPanelProps) {
   return (
     <div className="sessionHistoryPanel">
       <div className="sectionHeader">
         <h2>历史会话</h2>
-        <span>{sessionIndex ? `${sessionIndex.sessions.length} 条记录` : "尚未加载"}</span>
+        <div className="sessionHistoryHeaderMeta">
+          <span>{sessionIndex ? `${sessionIndex.sessions.length} 条记录` : "尚未加载"}</span>
+          <button
+            className="secondaryButton"
+            type="button"
+            disabled={!sessionIndex?.sessions.length || isRecoveringSession || isClearingSessionHistory}
+            onClick={() => void onClearSessionHistory()}
+          >
+            {isClearingSessionHistory ? "清空中..." : "清空当前 repo 历史"}
+          </button>
+        </div>
       </div>
 
       {sessionIndex && sessionIndex.sessions.length ? (
@@ -62,7 +80,7 @@ export function SessionHistoryPanel({ sessionIndex, isRecoveringSession, onRecov
           ))}
         </div>
       ) : (
-        <p className="emptyState">当前 repo 还没有历史会话记录。</p>
+        <p className="emptyState">当前没有历史会话记录。</p>
       )}
     </div>
   );

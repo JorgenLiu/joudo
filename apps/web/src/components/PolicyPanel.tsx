@@ -18,29 +18,17 @@ type CopyTarget = {
 function policyStateLabel(state: SessionSnapshot["repo"] extends null ? never : NonNullable<SessionSnapshot["policy"]>["state"]) {
   switch (state) {
     case "loaded":
-      return "已加载";
+      return "ready";
     case "invalid":
-      return "无效";
+      return "invalid";
     case "missing":
     default:
-      return "缺失";
+      return "missing";
   }
 }
 
 function summaryCountLabel(count: number, unit: string) {
   return `${count} ${unit}`;
-}
-
-function policySectionDescription(field: RepoPolicyRule["field"]) {
-  switch (field) {
-    case "allowedWritePaths":
-      return "这些规则会决定哪些写入可以在持久化后直接自动允许。";
-    case "allowShell":
-      return "这些 shell 模式会在命中时直接进入 allowlist。";
-    case "allowedPaths":
-    default:
-      return "这些路径会扩展当前 repo 的自动读取边界。";
-  }
 }
 
 function deleteImpactCopy(rule: RepoPolicyRule) {
@@ -177,7 +165,7 @@ export function PolicyPanel({ snapshot, onDeleteRule }: PolicyPanelProps) {
         onCancel={handleCancelDelete}
       />
       <div className="sectionHeader">
-        <h2>Repo Policy</h2>
+        <h2>Policy</h2>
         <span>{policy ? policyStateLabel(policy.state) : "未加载"}</span>
       </div>
 
@@ -186,15 +174,10 @@ export function PolicyPanel({ snapshot, onDeleteRule }: PolicyPanelProps) {
           <div className="policyHero">
             <strong>
               {writeRules.length
-                ? `当前有 ${summaryCountLabel(writeRules.length, "条")}受控写入规则`
-                : "当前还没有受控写入规则"}
+                ? `${summaryCountLabel(writeRules.length, "条")}受控写入`
+                : "0 条受控写入"}
             </strong>
-            <p>
-              {writeRules.length
-                ? "当前 repo policy 已经开始收敛为结构化规则视图，你可以直接看出哪些规则来自审批持久化。"
-                : "当你对 write 审批选择“允许并加入 policy”后，这里会直接显示当前 repo 已持久化的写入目标。"}
-            </p>
-            <small>{policy.path ? `Policy 文件：${policy.path}` : "当前 repo 还没有 policy 文件。"}</small>
+            <small>{policy.path ? policy.path : "当前没有 policy 文件"}</small>
           </div>
 
           <div className="policyOverviewGrid">
@@ -218,32 +201,29 @@ export function PolicyPanel({ snapshot, onDeleteRule }: PolicyPanelProps) {
 
           {latestPersistedRule ? (
             <div className="policyRecentBanner">
-              <span className="statusTag recovering">来自审批持久化</span>
-              <span>最近新增：<strong>{latestPersistedRule.value}</strong>（{policyRuleFieldLabel(latestPersistedRule.field)}）</span>
+              <span className="statusTag recovering">persisted</span>
+              <span>最近新增 <strong>{latestPersistedRule.value}</strong> / {policyRuleFieldLabel(latestPersistedRule.field)}</span>
             </div>
           ) : null}
 
           <details className="collapsible">
             <summary>{`allowed_write_paths (${writeRules.length})`}</summary>
             <div className="policySectionContent">
-              <p className="policySectionDesc">{policySectionDescription("allowedWritePaths")}</p>
-              {renderRuleList(writeRules, "当前没有受控写入规则。", setDeleteTarget, deletingRuleId, copiedRuleId, setCopiedRuleId)}
+              {renderRuleList(writeRules, "当前没有受控写入规则", setDeleteTarget, deletingRuleId, copiedRuleId, setCopiedRuleId)}
             </div>
           </details>
 
           <details className="collapsible">
             <summary>{`allow_shell (${shellRules.length})`}</summary>
             <div className="policySectionContent">
-              <p className="policySectionDesc">{policySectionDescription("allowShell")}</p>
-              {renderRuleList(shellRules, "当前没有 shell allowlist。", setDeleteTarget, deletingRuleId, copiedRuleId, setCopiedRuleId)}
+              {renderRuleList(shellRules, "当前没有 shell allowlist", setDeleteTarget, deletingRuleId, copiedRuleId, setCopiedRuleId)}
             </div>
           </details>
 
           <details className="collapsible">
             <summary>{`allowed_paths (${readRules.length})`}</summary>
             <div className="policySectionContent">
-              <p className="policySectionDesc">{policySectionDescription("allowedPaths")}</p>
-              {renderRuleList(readRules, "当前没有额外读取路径规则。", setDeleteTarget, deletingRuleId, copiedRuleId, setCopiedRuleId)}
+              {renderRuleList(readRules, "当前没有额外读取路径规则", setDeleteTarget, deletingRuleId, copiedRuleId, setCopiedRuleId)}
             </div>
           </details>
 
@@ -251,7 +231,7 @@ export function PolicyPanel({ snapshot, onDeleteRule }: PolicyPanelProps) {
         </div>
       ) : (
         <div className="policyCard">
-          <p className="emptyState">当前还没有可展示的 repo policy 摘要。</p>
+          <p className="emptyState">当前没有 repo policy。</p>
         </div>
       )}
     </section>

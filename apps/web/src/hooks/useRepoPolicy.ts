@@ -21,6 +21,7 @@ export function useRepoPolicy() {
   const [isSavingInstruction, setIsSavingInstruction] = useState(false);
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
   const [isInitializingRepo, setIsInitializingRepo] = useState(false);
+  const [isClearingSessionHistory, setIsClearingSessionHistory] = useState(false);
 
   async function refreshAuth() {
     try {
@@ -194,12 +195,41 @@ export function useRepoPolicy() {
     }
   }
 
+  async function clearSessionHistory() {
+    try {
+      setIsClearingSessionHistory(true);
+      ctx.setErrorState(null);
+      const nextSnapshot = await readJson<SessionSnapshot>(`${bridgeOrigin}/api/repo/sessions/clear`, {
+        method: "POST",
+      });
+      ctx.setSnapshot(nextSnapshot);
+      await ctx.refreshRepoScopedState({ preserveUnsavedInstructionDraft: true });
+    } catch (error) {
+      ctx.setErrorState(
+        toErrorState(
+          error,
+          {
+            code: "recovery",
+            message: "清空历史会话失败。",
+            nextAction: "确认当前没有运行中的任务或待审批请求，然后重试。",
+            retryable: true,
+          },
+          () => clearSessionHistory(),
+          "重试清空历史",
+        ),
+      );
+    } finally {
+      setIsClearingSessionHistory(false);
+    }
+  }
+
   return {
     isRefreshingAuth,
     isRefreshingValidation,
     isSavingInstruction,
     isRecoveringSession,
     isInitializingRepo,
+    isClearingSessionHistory,
     validationReport: ctx.validationReport,
     repoInstruction: ctx.repoInstruction,
     instructionDraft: ctx.instructionDraft,
@@ -214,5 +244,6 @@ export function useRepoPolicy() {
     saveRepoInstruction,
     deletePolicyRule,
     recoverHistoricalSession,
+    clearSessionHistory,
   };
 }

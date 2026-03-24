@@ -17,6 +17,13 @@ const snapshot: SessionSnapshot = {
   },
   model: "gpt-5-mini",
   availableModels: ["gpt-5-mini", "gpt-5.4"],
+  agent: null,
+  availableAgents: [],
+  agentCatalog: {
+    globalCount: 0,
+    repoCount: 0,
+    totalCount: 0,
+  },
   auth: {
     status: "authenticated",
     message: "authenticated",
@@ -66,12 +73,18 @@ describe("SummaryPanel", () => {
   it("renders the execution summary as a result-oriented panel", () => {
     render(<SummaryPanel snapshot={snapshot} />);
 
-    expect(screen.getByText("当前摘要已经收口")).toBeInTheDocument();
-    expect(screen.getByText("这一轮当前能解释的结果、风险和下一步已经整理到下面。")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "done" })).toBeInTheDocument();
+    expect(screen.getByText("result_ready")).toBeInTheDocument();
     expect(screen.getByText("空闲")).toBeInTheDocument();
-    expect(screen.getByText("真实会话已返回结果")).toBeInTheDocument();
+    expect(screen.getAllByText("真实会话已返回结果").length).toBeGreaterThan(0);
+    expect(screen.getByText("state")).toBeInTheDocument();
     expect(screen.getByText("已经修复提交逻辑，并补了一轮校验。")).toBeInTheDocument();
-    expect(screen.getByText("本轮执行步骤")).toBeInTheDocument();
+    expect(screen.getByText("steps")).toBeInTheDocument();
+    expect(screen.getByText("commands")).toBeInTheDocument();
+    expect(screen.getByText("approval_types")).toBeInTheDocument();
+    expect(screen.getByText("files")).toBeInTheDocument();
+    expect(screen.getByText("checks")).toBeInTheDocument();
+    expect(screen.getByText("risks")).toBeInTheDocument();
     expect(screen.getByText("已发送提示词")).toBeInTheDocument();
     expect(screen.getByText("执行了 2 条命令")).toBeInTheDocument();
     expect(screen.getByText("产生了 2 项文件变更")).toBeInTheDocument();
@@ -81,6 +94,7 @@ describe("SummaryPanel", () => {
     expect(screen.getAllByText("apps/web/src/components/Form.tsx").length).toBeGreaterThan(0);
     expect(screen.getByText("本轮已经形成可展示的执行结果")).toBeInTheDocument();
     expect(screen.getByText("当前仓库缺少 repo policy 文件，bridge 会按保守默认值处理权限请求")).toBeInTheDocument();
+    expect(screen.getByText("next_action")).toBeInTheDocument();
     expect(screen.getByText("先检查这轮记录下来的文件变更，再决定是否继续围绕“请修复表单提交并验证结果”推进下一步。")).toBeInTheDocument();
   });
 
@@ -95,9 +109,11 @@ describe("SummaryPanel", () => {
 
     render(<SummaryPanel snapshot={legacySnapshot} />);
 
-    expect(screen.getByText("历史摘要")).toBeInTheDocument();
+    expect(screen.getAllByText("历史摘要").length).toBeGreaterThan(0);
     expect(screen.getByText("这是从旧快照恢复的摘要。")).toBeInTheDocument();
-    expect(screen.getAllByText("0 条").length).toBeGreaterThan(0);
-    expect(screen.getByText("先查看本轮已恢复的摘要和时间线，再决定是否继续下一步。")).toBeInTheDocument();
+    expect(screen.getAllByText("当前没有执行命令").length).toBeGreaterThan(0);
+    expect(screen.getByText("等待后续操作。")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "done" })).toBeInTheDocument();
+    expect(screen.getByText("result_ready")).toBeInTheDocument();
   });
 });

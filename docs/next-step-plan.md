@@ -2,59 +2,17 @@
 
 ## 文档用途
 
-这份文档只保留三类内容：
+这份文档只保留当前仍有决策价值的内容：
 
-- 当前已经确定、不再反复讨论的产品边界
-- 接下来 1 到 2 个迭代的明确主线
-- 仍会改变实现顺序的关键风险
+- 已确认不变的产品边界
+- 接下来 1 到 2 个迭代的主线
+- 仍需要持续关注的风险
 
 ## 当前阶段判断
 
-Joudo 已经完成“主链路打通”阶段，进入“把受控 MVP 收敛成稳定产品面”阶段。
+Joudo 当前已经具备可运行的本地 bridge + Web UI 主链路。
 
-因此接下来不应该把重点继续放在扩展更多底层执行实验，而应该优先补齐治理、解释和用户信任面。
-
-## 最近完成
-
-- bridge UT 稳定性修复：
-  - `turn-changes.ts` 对 watcher 捕获到的候选路径外事件新增二次确认，只把经 targeted observe 证实的真实文件变化记为 `unexpectedObservedPaths`
-  - 修复 macOS 下目录级或噪声 watcher 事件导致回滚状态被误判为 `needs-review` 的问题
-- 移动端可用性基线（评估报告 Phase B）：
-  - B1：全局最小字号提升到 0.8rem，消除 0.6–0.78rem 的 36 处小字体
-  - B2：所有交互元素（按钮、tab、select、collapsible summary）加入 `min-height: 44px` 触控目标
-  - B3：640px / 900px 桌面断点增强：summary 网格 3→4 列、validation 覆盖率三列、header 居中约束
-  - B4：新增 `@media (prefers-color-scheme: light)` 浅色主题，基于 VSCode Light 色板自动跟随系统
-  - B5：bootstrap 加载态从纯 spinner 升级为 skeleton 骨架屏（shimmer 动画 + 占位块）
-- 状态管理重构（评估报告 Phase C）：
-  - C3：`useBridgeConnection` 新增 15 项 hook 测试（bootstrap 成功/失败、WebSocket 生命周期、重连指数退避、rebootstrap、清理）
-  - C4：`mvp-state.ts` 引入 `MvpStateDeps` 接口，11 个外部 I/O 依赖（policy/persistence/repo/checkpoint）通过 `deps` 对象注入，默认值保持向后兼容
-- 安全加固（评估报告 Phase D）：
-  - 路径验证 TOCTOU 竞态条件已记录到 `docs/policy.md`，评估后认定当前本地单用户场景下风险可接受
-  - `repo-discovery.ts` 中 `trusted: true` 硬编码修复为从实际仓库 policy 文件读取 `trusted` 配置
-  - `turn-changes.ts` 中全部 4 处 `createHash("sha1")` 升级为 `createHash("sha256")`
-  - `bindSession()` 订阅清理确认无泄漏（既有代码已正确处理）
-- 测试补齐（评估报告 Phase E）：
-  - `bridge-utils.test.ts`：12 项 normalizeSnapshot 测试（空值处理、字段保留、回退机制、auth/summary 归一化）
-  - `persistence-failure.test.ts`：3 项持久化写入失败路径测试（成功写入、EACCES 重试后回调、无 session 时跳过）
-  - `approval-rollback.test.ts`：5 项并发审批与回退集成测试（重复解析 404、乱序解析、混合决策、审批期间回退拒绝、无回退数据拒绝）
-- 摘要页面崩溃修复：
-  - `normalizeSnapshot` 新增 `normalizeSummary()` 确保 summary 所有字段都有安全默认值
-  - `CompactText` 空值保护：`text.trim()` → `(text ?? "").trim()`
-  - `App.tsx` summaryPreviewCard 可选链保护：`snapshot.summary.body?.length ?? 0`
-- 错误处理与状态管理架构修复（评估报告 Phase A + Phase C）：
-  - 错误分类从纯 regex 升级为三阶段结构化分类（structural fields → regex → unknown）
-  - 持久化写入加入重试（2 次，200ms 间隔）和失败回调，失败会在时间线中可视化
-  - WebSocket JSON.parse 加入 try-catch 保护
-  - shell 管道/链式命令（`|` `&&` `||` `;`）检测：即使命中 allow 规则也强制进入 confirm 流程
-  - Web App 加入 React Error Boundary，防止子组件异常导致白屏
-  - `useBridgeApp` 拆分为 `useBridgeConnection` / `useSessionState` / `useRepoPolicy` 三个领域 hook + `BridgeProvider` Context
-  - 审批解析从线性扫描改为 `Map<approvalId, repoId>` 索引 O(1) 查找
-- Web UI 已支持按 repo 选择当前执行模型；bridge 会校验允许列表，并在空闲会话上切换到下一条 prompt 生效
-- `SessionSummary` 已开始返回结构化 `steps`，把 timeline、命令和文件变更整理为更适合人读的执行步骤
-- bridge 现在会优先通过 Copilot SDK 运行时探测可用模型列表，`JOUDO_AVAILABLE_MODELS` 退回为兜底来源
-- 摘要页的 `steps` 已改为聚合型步骤，不再把历史时间线事件原样重放，减少与 Timeline 视图的重复
-- session 持久化已加入保留上限：当前 + 最近 5 条保留 snapshot，历史索引保留 50 条，并清理孤儿目录
-- Web UI 已对摘要、轨迹、审批、时间线的长文本加入折叠显示，避免大段脚本/路径占满页面
+下一阶段的重点不是继续扩展更多底层执行能力，而是把现有能力收敛成更稳定、更可解释、更可治理的产品面。
 
 ## 已确认不变的决定
 
@@ -91,160 +49,67 @@ Joudo 已经完成“主链路打通”阶段，进入“把受控 MVP 收敛成
 - 明确单文件路径
 - `generated` / `__generated__` 目录
 
+### agent 继续保持运行时语义
+
+custom agent 的发现和选择只反映“本次 bridge 运行看到的 Copilot 环境”，不写回 repo-scoped `.joudo` 持久化。
+
 ## 下一阶段主线
 
-### 主线 A: 做完整的 policy 治理闭环
+### 主线 A: 补齐 policy 治理闭环
 
 这是当前最高优先级。
 
-原因很直接：Joudo 已经能把人工批准写回 allowlist，但还不能同等质量地回答下面几个产品级问题：
+Joudo 已经能把审批结果写回 allowlist，但产品仍然需要更稳定地回答这些问题：
 
-- 这条规则是谁、因为什么加进去的
-- 这条规则现在是否还应该存在
-- 这条规则覆盖范围是否过宽
-- 用户如何撤销一次错误的持久化批准
+- 这条规则为什么存在
+- 它的影响范围是否过宽
+- 用户如何撤销或修正它
+- 最近新增的规则是否值得保留
 
-如果这些问题不解决，policy 会持续增长，但产品无法提供足够的治理能力。对一个以“安全、受控、repo-scoped”作为核心价值的系统来说，这是当前最大的产品缺口。
+当前目标不是再做 YAML 编辑器，而是继续把治理能力保持在“可读、可解释、可回收”的方向上。
 
-本主线建议拆成三个连续交付：
+### 主线 B: 压缩 recovery / rollback 的理解成本
 
-1. 在 Repo Policy 面板中高亮最近一次新增规则，并显示其来源类型
-2. 支持删除或撤销 allowlist 规则
-3. 为 write allowlist 增加范围解释，明确它为何被归一化成单文件或目录
+底层恢复和回退判断已经存在，但产品解释仍然偏长、偏工程化。
 
-#### 建议交互方案
+接下来需要继续降低用户理解这些状态的成本：
 
-目标不是把 Repo Policy 面板做成 YAML 编辑器，而是先做成一个可读、可解释、可回收的规则治理面板。
+- 为什么当前能回退
+- 为什么当前只能 history-only 恢复
+- attach 失败后接下来应该做什么
+- 当前恢复的是历史事实还是实时会话
 
-第一版建议采用三层结构：
+### 主线 C: 收敛交付形态
 
-1. 顶部概览区
-2. 最近变更区
-3. 分类规则列表区
+当前 bridge、web、desktop 都已经能工作，但还不是一个完成收口的最终交付形态。
 
-##### 1. 顶部概览区
+当前已经确认的 desktop 启动方式是：macOS 以菜单栏托盘 app 形式启动，bridge 自动拉起，点击托盘图标再打开控制面板窗口；关闭窗口只隐藏回托盘，不直接退出进程。
 
-保留当前“policy 是否已加载”和“文件路径”信息，同时补三项内容：
+后续需要把：
 
-- 当前总规则数
-- 最近一次持久化写入是否成功
-- 当前最敏感的规则类型数量，优先显示 `allowed_write_paths`
+- 开发态启动路径
+- 本地控制面能力
+- 打包与发布路径
 
-这一层的目标是让用户不用先读明细，就能判断当前 repo policy 是不是已经开始变宽。
+逐步收敛成更稳定的交付模型。
 
-##### 2. 最近变更区
+当前主线 C 应进入实作阶段，不再只停留在“最后再做”的占位：下一步优先推进可重复的本机打包流程，先产出稳定 `.app`，再推进 `.dmg`。
 
-把当前审批区里的“已加入当前 repo policy”成功卡片，与 Repo Policy 面板联动成同一条事实链。
+当前已收敛的 packaging 决策：默认 desktop 打包命令仍以稳定 `.app` 为主；显式 `.dmg` 步骤已经切换到简化 `hdiutil` 路径，绕过了这台 Ventura 开发机上 Tauri create-dmg 的卸载失败点。
 
-最近变更区至少显示：
+## 当前风险
 
-- 新增的规则内容
-- 规则类型，例如 shell / read / write
-- 来源，例如“来自审批持久化”
-- 归一化说明，例如“单文件写入折叠为 generated 目录”
-- 变更动作，第一版只需要“删除这条规则”
+### 上游 CLI / SDK 语义仍可能影响恢复边界
 
-这样用户在批准后可以立刻完成第二个动作：确认这条规则到底被写成了什么。
+历史 attach、事件流和 `/undo` 行为仍受上游能力影响。
 
-这一步当前也已经完成，最近变更区和分类规则列表都已经落地。
+### policy 会天然累积复杂度
 
-##### 3. 分类规则列表区
+如果治理面不足，allowlist 会逐步变宽，但用户未必能清楚理解其来源和风险。
 
-当前 `allowed_write_paths`、`allow_shell`、`allowed_paths` 三组展示方式要从“纯 pill 列表”升级为“规则项列表”。
+### 运行时 agent 环境不是稳定事实
 
-每条规则建议显示：
-
-- 规则值
-- 规则类型
-- 来源标签
-- 风险标签
-- 可选说明
-- 操作按钮
-
-第一版操作当前已落地：
-
-- 删除
-
-`复制规则文本` 仍然可以作为后续补充，但已经不再阻塞当前治理闭环。
-
-不要在第一版上来就支持拖拽、批量编辑或任意 YAML 修改，这会把复杂度拉高，但不直接提升治理闭环。
-
-#### 删除交互
-
-删除已经成为当前治理主线里的第一个真实动作，并且已经落地。
-
-当前实现：
-
-1. 用户点击规则上的“删除”
-2. 弹出确认层
-3. 确认层明确显示将被删除的精确规则和值
-4. 如果这条规则是最近一次持久化结果，额外提示“删除后同类请求将重新进入审批”
-5. 删除成功后刷新当前 snapshot.policy，并通过 summary / timeline 给出结构化反馈
-
-确认文案当前已经避免只写“确定删除吗”，而是明确说明删除后的运行时影响。
-
-#### 来源与解释模型
-
-要让治理面板成立，当前仅有字符串数组还不够。
-
-这一步当前已经完成：shared / bridge 数据已经把规则项从“字符串数组”提升为“结构化规则对象列表”，并开始在 Web UI 中展示来源、风险和归一化说明。
-
-当前结构至少包含：
-
-- `value`
-- `field`
-- `source`
-- `note`
-- `lastUpdatedAt`
-- `isPersistedFromApproval`
-- `risk`
-
-其中 `source` 当前至少区分：
-
-- `policy-file`
-- `approval-persisted`
-
-`note` 当前主要用于解释 write 规则为何被归一化，例如：
-
-- “由 ./src/generated/foo.ts 折叠为 ./src/generated”
-- “按单文件精确写入保存”
-
-#### 与当前代码结构的衔接
-
-这套方案可以直接沿用当前已有入口，不需要大改页面结构：
-
-- ApprovalPanel 继续承担“刚批准后的即时反馈”
-- PolicyPanel 承担“长期治理和回收”
-- timeline 继续承担“按时间回看发生过什么”
-
-对应实现拆分建议：
-
-1. 已完成：扩 shared 的 `RepoPolicySnapshot`，把字符串数组升级为结构化规则项
-2. 已完成：bridge 在组装 snapshot 时补规则来源和解释字段
-3. 已完成：web 重写 PolicyPanel，把 pill 展示升级为规则列表
-4. 已完成：bridge 增加删除规则接口
-5. 已完成：web 为每条规则接上删除动作和成功反馈
-
-#### 暂不做的项
-
-为了保持这一轮实现收敛，先不做：
-
-- 任意 YAML 在线编辑
-- 规则批量删除
-- URL allowlist 持久化治理
-- 复杂筛选与排序
-- 审批来源的跨会话审计回溯
-
-这些都可以等第一版“可删除、可解释、可确认来源”的治理闭环稳定之后再补。
-
-### 主线 B: 压缩 rollback / recovery 的解释成本
-
-这是第二优先级。
-
-底层能力已经基本到位，但用户仍然需要更短、更稳定的解释来理解：
-
-- 为什么当前 turn 可以回退
-- 为什么当前 turn 只能 `needs-review`
+custom agent 来自当前运行时目录扫描，因此不能把它当作历史快照的一部分来理解。
 - 为什么某个历史会话只能 history-only 恢复
 - 为什么某个旧会话还能 attach
 
@@ -293,8 +158,39 @@ Joudo 已经完成“主链路打通”阶段，进入“把受控 MVP 收敛成
 - ✅ Root `pnpm build` 统一入口（typecheck → web build → bridge build）
 - ✅ `POST /api/repo/init-policy` + 最小 Web onboarding（初始化推荐 policy、repo 指令和会话索引）
 - ✅ 本机可见的 TOTP setup 信息接口（仅 loopback 可访问，避免把绑定密钥暴露到 LAN）
-- 🟡 Tauri 菜单栏壳最小骨架已落地（`apps/desktop`，当前机器缺少 `cargo`，未做 Rust 编译验证）
-- GitHub Actions CI 管线（typecheck + test + build）
+- ✅ Tauri 菜单栏壳已编译验证并可运行（`apps/desktop`，cargo 1.94.0 + Tauri v2.10.3，bridge 生命周期管理、tray 菜单、自动启动 bridge、隐藏窗口/tray-only 模式均已验证）
+- ✅ 桌面控制面板已从"手机 Web UI 嵌入"修正为独立管理面板（bridge 起停、TOTP 密钥查看/复制、仓库选择与策略初始化、LAN 地址复制），Tauri IPC 代理 bridge API（避免 CORS），bridge 管理类路由加入本地免认证旁路
+- ✅ desktop bridge 启动链路已加固：启动中状态不再被轮询覆盖；bridge dist 过期时可自动触发 `pnpm --filter @joudo/bridge build`
+- ✅ desktop 本机启动链路已补强常见用户态 Node/pnpm/corepack 安装路径探测，修复“已安装 Node 但桌面端误报未找到可执行文件”的问题
+- ✅ Web 历史页支持清空当前 repo 的会话历史；bridge 会重写空 sessions-index 并删除持久化 snapshots
+- ✅ Web fetch 工具已修复“无 body 的 POST 仍强制发送 `Content-Type: application/json`”问题，清空历史/回滚等空 body 请求不再触发 Fastify `body cannot be empty`
+- ✅ 本机 TOTP 已支持重绑设备：bridge 可生成新密钥并撤销现有 session token，desktop 控制面板已接入该流程
+- ✅ desktop 控制面板现在能识别“外部已运行”的 bridge，不再把可用 bridge 误判成未启动；外部 bridge 场景下 repo/TOTP 管理面仍可正常使用
+- ✅ 手机 Web UI 现在即使未发现任何 agent，也会保留 agent 区域并明确提示 agent 目录位置，不再把该能力直接隐藏
+- ✅ desktop 默认打包链路已收敛为 `.app`：`corepack pnpm build:desktop` 现在直接走 app bundle，默认产物为 `apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app`
+- ✅ 显式 `.dmg` 打包已切换为简化 `hdiutil` 流程，绕过 create-dmg 卸载失败问题
+- ✅ desktop 现在会在应用退出路径上回收自己托管的 bridge，减少 8787 端口残留干扰
+- ✅ packaged app 启动 bridge 前会补齐手机端 `apps/web/dist`，并把 mobile web 构建目标收紧到 `es2019`
+- ✅ desktop `.app` 现在会在打包阶段生成 `bundle-resources/`，把受控 Node runtime、`apps/bridge/dist`、`apps/bridge/node_modules` 和 `apps/web/dist` 一起打进 app resources
+- ✅ packaged desktop 启动 bridge 时现在优先且只使用 app 内 bundled Node；一旦检测到 app bundle 资源不完整，不再回退到宿主机 Node
+- ✅ 已新增 packaged desktop 回归脚本：可自动验证 `.app` 形态下的 bridge 自动拉起、TOTP 重绑/认证、repo 初始化、历史清空和重启恢复
+- ✅ GitHub Actions CI 管线已接入 desktop 质量门：`ci.yml` 负责 typecheck/test/build，`desktop-macos.yml` 对相关路径 PR 和主分支负责 macOS `.app` 构建、packaged desktop 回归与 artifact 上传
+- ✅ release workflow 已拆阶段：`release-desktop.yml` 现已手动支持 `.app`、`.dmg` 和 signing readiness 三段式流程
+- ✅ UI 重构已进入落地阶段：desktop 控制面板已完成第一轮 Quiet Sanctuary 壳层改造，mobile Web Hero 已改成更清晰的品牌头部与 repo/model/agent 上下文卡片，当前未改动既有功能流
+- ✅ mobile Web 第二轮内容区重构已完成：Console / Summary / Policy / History 四个 tab 已补齐 intro、统一卡片层次与阅读流
+- ✅ desktop 第二轮状态反馈已完成：bridge 现在显式区分待机、启动中、Joudo 托管、外部 bridge、错误五种状态
+- ✅ mobile Web 第三轮模块统一已完成：Approval / Validation / Timeline / Repo Context / Auth 模块已补齐引导层并统一到同一套卡片系统
+- ✅ desktop 微交互已补齐：应用首屏淡入、bridge 启动脉冲、状态卡过渡和按钮/卡片轻量反馈已接入
+- ✅ mobile Web 第四轮边角态收口已完成：Onboarding / Error / empty state / checkpoint overlay / bootstrap loading / FAQ 与详情展开态已统一到 Quiet Sanctuary 视觉层
+- ✅ mobile Web 顶部上下文模块已收敛为可折叠摘要态，折叠后仅保留 model / bridge 状态，避免首屏被仓库上下文占满
+- ✅ mobile Web Summary 内的 ActivityPanel 已把卡片密度、内边距和子模块层次收敛到与 Summary / Timeline 同一视觉节奏
+- ✅ 品牌图标已进一步统一：web Hero / TOTP、desktop 控制面板、tray 彩色图标与打包资源脚本统一收敛到 Bridge Seal
+- ✅ bridge repo 发现已收紧为“显式配置 + 用户手动添加”，不再默认注入本地 `demo` 或工作区派生目录
+- ✅ mobile Web 与 desktop 控制面板已移除大部分重复说明性文案，repo 备注模块已收敛到与其他卡片一致的节奏
+- ✅ mobile Web 第二轮文案清理已完成：首次配置、首次进入、Repo Policy 和多处空状态已收敛为状态化短文案，TOTP 入口提示也已同步压缩
+- ✅ logo / 品牌主标当前视为定稿：继续沿用现有 torii + bridge 方向与当前色板，本轮不再继续改动视觉资产
+- ✅ 2026-03-24 已重新验证 desktop `.app` 打包链路：`corepack pnpm build:desktop` 成功产出 `apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app`，随后 packaged runtime 回归脚本通过
+- ✅ 2026-03-24 已重新验证 desktop `.dmg` 打包链路：`corepack pnpm build:desktop:dmg` 成功产出 `apps/desktop/src-tauri/target/release/bundle/dmg/Joudo_0.1.0_x64.dmg`，`hdiutil verify` 校验通过，挂载后镜像内包含 `Joudo.app`
 - 更完整的 Web / desktop TOTP 引导（二维码展示、重绑流程）
 
 ### 主线 C（保留，最后再做）：远程/公网准备
@@ -302,7 +198,30 @@ Joudo 已经完成“主链路打通”阶段，进入“把受控 MVP 收敛成
 - HTTPS + WSS
 - Session token httpOnly cookie
 - WebSocket reconnect max retry cap
-- 桌面壳从“骨架”推进到 bridge 托管、菜单栏状态和本机 onboarding 正式可用
+- ✅ 桌面壳已从"骨架"推进到 bridge 托管、菜单栏状态和本机 tray-only 可用（dev 模式验证通过）
+- 桌面壳打包为稳定 `.app`（`tauri build` 产物验证）
+- `.dmg` 打包与首次安装说明
+- 更完整的 Web / desktop TOTP 引导（二维码展示、重绑流程）
+
+## Packaging 实施顺序
+
+按建议顺序：
+
+1. 已完成：固化 `pnpm build` + `pnpm build:desktop` 的 `.app` 成功路径
+2. 已完成：把受控 Node runtime、bridge/web 产物收进 `.app`，并让 packaged desktop 启动链路只认 bundled Node
+3. 已完成：验证打包出的 `.app` 可直接拉起 bundled bridge，bridge 监听 `8787`，且运行时只使用 app 内 `Resources/runtime/node/bin/node`
+4. 补充打包产物位置、签名要求、已知限制和回归检查清单
+5. 最后再收敛 `.dmg` 分发体验与签名/公证细节
+
+在第 3 步验证里，需要明确区分两个层级：
+
+- 当前已修复的是“宿主机其实装了 Node，但 GUI 进程 PATH 不完整导致 desktop 找不到”的启动缺陷
+- 当前已经把 bridge 运行时收敛为随 `.app` 一起交付的受控依赖，packaged desktop 不再依赖宿主机 Node/pnpm
+- 当前已经验证 packaged `.app` 会实际拉起 app bundle 内的 Node 和 bridge/Copilot 子进程，而不是宿主机 Node
+- 当前 packaging / release 计划文档已补齐，tray/window/Dock 的人工回归清单与 GitHub Actions 接管方案见 `docs/packaging-release-plan.md`
+- 当前 packaging / release 计划文档已补充“Developer ID 但不上 App Store”的最小待办清单，可按 P0/P1/P2 分阶段推进
+- 当前 UI/品牌重构方向已收敛：采用 Quiet Sanctuary，产品 icon 走 Bridge Seal，品牌主标走 Enso Gate；基础规范与候选图标见 `docs/ui-rebrand-plan.md` 和 `docs/branding/`
+- 后续仍需继续完善签名、公证、安装说明和无终端场景下的回归验证
 
 ## 当前风险
 

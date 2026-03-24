@@ -7,10 +7,12 @@
     "dev:bridge": "corepack pnpm --filter @joudo/bridge dev",
     "dev:web": "corepack pnpm --filter @joudo/web dev",
     "dev:desktop": "corepack pnpm --filter @joudo/desktop tauri:dev",
+    "validate:desktop:packaged": "corepack pnpm --filter @joudo/desktop validate:packaged-runtime",
     "validate:policy-live": "node scripts/validate-policy-live.mjs",
     "typecheck": "corepack pnpm --recursive --filter @joudo/shared --filter @joudo/bridge --filter @joudo/web typecheck",
     "build": "corepack pnpm typecheck && corepack pnpm --filter @joudo/web build && corepack pnpm --filter @joudo/bridge build",
-    "build:desktop": "corepack pnpm --filter @joudo/desktop tauri:build",
+    "build:desktop": "corepack pnpm --filter @joudo/desktop tauri:build:app",
+    "build:desktop:dmg": "corepack pnpm --filter @joudo/desktop tauri:build:dmg",
     "start": "corepack pnpm --filter @joudo/bridge start"
   }
 }

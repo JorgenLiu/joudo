@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import { ensureJoudoSession, queuePersistence, snapshotForContext } from "./session-store.js";
+import { clearSessionHistory, createSessionIndexEntry, saveSessionIndex, saveSessionSnapshot } from "./persistence.js";
 import type { RepoContext } from "./types.js";
 
 function createMinimalRepoContext(repoRoot: string): RepoContext {
@@ -36,6 +37,13 @@ function createMinimalRepoContext(repoRoot: string): RepoContext {
       error: null,
     },
     currentModel: "gpt-5-mini",
+    currentAgent: "reviewer",
+    availableAgents: ["reviewer"],
+    agentCatalog: {
+      globalCount: 1,
+      repoCount: 1,
+      totalCount: 1,
+    },
     status: "idle",
     lastPrompt: null,
     timeline: [],
@@ -106,6 +114,14 @@ test("queuePersistence successfully writes snapshot and index to disk", async ()
       existsSync(join(joudoDir, "sessions", context.lifecycle.joudoSessionId!)),
       "session directory should exist",
     );
+
+    const persisted = JSON.parse(
+      await readFile(join(joudoDir, "sessions", context.lifecycle.joudoSessionId!, "snapshot.json"), "utf8"),
+    ) as { snapshot: { agent: string | null; availableAgents: string[]; agentCatalog: { totalCount: number } } };
+
+    assert.equal(persisted.snapshot.agent, null);
+    assert.deepEqual(persisted.snapshot.availableAgents, []);
+    assert.equal(persisted.snapshot.agentCatalog.totalCount, 0);
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
   }
@@ -179,4 +195,58 @@ test("queuePersistence is skipped when joudoSessionId is not set", () => {
   // No queue entry should be created
   assert.equal(persistenceQueues.has("test-repo"), false, "No persistence should be queued without a session id");
   assert.equal(errorCalled, false);
+});
+
+test("clearSessionHistory removes persisted snapshots and rewrites an empty index", async () => {
+  const repoRoot = await mkdtemp(join(tmpdir(), "joudo-clear-history-"));
+
+  try {
+    const repo = {
+      id: "test-repo",
+      name: "test",
+      rootPath: repoRoot,
+      trusted: true,
+      policyState: "loaded" as const,
+    };
+
+    const entry = createSessionIndexEntry({
+      id: "joudo-1",
+      createdAt: new Date("2026-03-23T00:00:00.000Z").toISOString(),
+      updatedAt: new Date("2026-03-23T00:10:00.000Z").toISOString(),
+      status: "idle",
+      turnCount: 1,
+      lastPrompt: "test prompt",
+      summaryTitle: "done",
+      summaryBody: "done body",
+      hasPendingApprovals: false,
+      lastKnownCopilotSessionId: null,
+    });
+
+    await saveSessionIndex(repoRoot, {
+      schemaVersion: 1,
+      repoId: repo.id,
+      repoPath: repo.rootPath,
+      currentSessionId: null,
+      updatedAt: entry.updatedAt,
+      sessions: [entry],
+    });
+
+    await saveSessionSnapshot({
+      repoRoot,
+      sessionId: entry.id,
+      createdAt: entry.createdAt,
+      lastKnownCopilotSessionId: null,
+      snapshot: snapshotForContext(createMinimalRepoContext(repoRoot), { status: "authenticated", message: "ok" }, ["gpt-5-mini"], "gpt-5-mini"),
+    });
+
+    const nextIndex = await clearSessionHistory(repo);
+    const indexContent = JSON.parse(await readFile(join(repoRoot, ".joudo", "sessions-index.json"), "utf8")) as { sessions: unknown[] };
+
+    assert.equal(nextIndex.sessions.length, 0);
+    assert.equal(indexContent.sessions.length, 0);
+    const { existsSync } = await import("node:fs");
+    assert.equal(existsSync(join(repoRoot, ".joudo", "sessions", entry.id)), false);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
 });

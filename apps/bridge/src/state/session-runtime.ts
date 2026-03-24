@@ -94,6 +94,7 @@ export function createSessionRuntime(deps: SessionRuntimeDeps) {
       onPermissionRequest: (request: PermissionRequest) => deps.handlePermissionRequest(context, request),
       streaming: true,
       model: context.currentModel,
+      ...(context.currentAgent ? { agent: context.currentAgent } : {}),
     };
   }
 

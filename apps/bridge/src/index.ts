@@ -13,15 +13,19 @@ import type {
   RecoverHistoricalSessionPayload,
   LivePolicyValidationReport,
   PromptSubmission,
+  RepoAddPayload,
   RepoInitPolicyPayload,
   RepoInitPolicyResult,
   RepoPolicyRuleDeletePayload,
   RepoInstructionUpdatePayload,
+  RepoRemovePayload,
   RepoSelectionPayload,
   RollbackLatestTurnPayload,
+  SessionAgentSelectionPayload,
   SessionModelSelectionPayload,
   SessionCheckpointDocument,
   ServerEvent,
+  TotpRebindResponse,
   TotpSetupResponse,
   TotpVerifyPayload,
   TotpVerifyResponse,
@@ -31,6 +35,8 @@ import {
   getTotpUri,
   loadOrCreateSecret,
   printTotpQrCode,
+  resetSecret,
+  revokeAllTokens,
   verifyTotp,
   createSessionToken,
   validateSessionToken,
@@ -49,7 +55,7 @@ const SERVE_STATIC = existsSync(path.join(WEB_DIST_DIR, "index.html"));
 const app = Fastify({ logger: true });
 const state = createMvpState();
 
-const { secret: totpSecret, isNew: isNewTotpSecret } = loadOrCreateSecret();
+let { secret: totpSecret, isNew: isNewTotpSecret } = loadOrCreateSecret();
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
@@ -114,11 +120,26 @@ app.setErrorHandler((error, _request, reply) => {
 });
 
 // /ws is exempt because it validates its own token via query param inside the handler
-const AUTH_EXEMPT_ROUTES = new Set(["/health", "/api/auth/totp", "/api/auth/totp/setup", "/ws"]);
+const AUTH_EXEMPT_ROUTES = new Set(["/health", "/api/auth/totp", "/api/auth/totp/setup", "/api/auth/totp/rebind", "/ws"]);
+
+// Desktop admin routes that bypass auth when called from localhost (Tauri IPC proxy).
+const LOCAL_ADMIN_ROUTES = new Set([
+  "/api/repos",
+  "/api/repos/add",
+  "/api/repos/remove",
+  "/api/session",
+  "/api/session/select",
+  "/api/session/agent",
+  "/api/repo/init-policy",
+]);
 
 app.addHook("onRequest", async (request, reply) => {
   const pathname = request.url.split("?")[0]!;
   if (AUTH_EXEMPT_ROUTES.has(pathname)) {
+    return;
+  }
+  // Allow desktop admin panel to call management routes without TOTP auth
+  if (LOCAL_ADMIN_ROUTES.has(pathname) && isLocalRequest(request.ip)) {
     return;
   }
   if (SERVE_STATIC && !pathname.startsWith("/api/") && pathname !== "/ws") {
@@ -181,6 +202,31 @@ app.get("/api/auth/totp/setup", async (request, reply): Promise<TotpSetupRespons
   };
 });
 
+app.post("/api/auth/totp/rebind", async (request, reply): Promise<TotpRebindResponse> => {
+  if (!isLocalRequest(request.ip)) {
+    reply.status(403);
+    return {
+      success: false,
+      message: "TOTP 重绑只允许在本机访问。请在 Mac 本机打开 Joudo 完成重绑。",
+      secret: "",
+      uri: "",
+    };
+  }
+
+  const next = resetSecret();
+  totpSecret = next.secret;
+  isNewTotpSecret = true;
+  revokeAllTokens();
+  printTotpQrCode(totpSecret);
+
+  return {
+    success: true,
+    message: "已生成新的 TOTP 密钥，现有已登录设备需要重新认证。",
+    secret: totpSecret,
+    uri: getTotpUri(totpSecret, "Joudo Bridge"),
+  };
+});
+
 app.get("/health", async (): Promise<BridgeHealthResponse> => ({
   status: "ok",
   mode: "mvp",
@@ -191,6 +237,38 @@ app.get("/health", async (): Promise<BridgeHealthResponse> => ({
 app.get("/api/repos", async () => ({
   repos: state.getRepos(),
 }));
+
+app.post<{ Body: RepoAddPayload }>("/api/repos/add", {
+  schema: {
+    body: {
+      type: "object",
+      required: ["rootPath"],
+      properties: {
+        rootPath: { type: "string", minLength: 1 },
+        initializePolicy: { type: "boolean" },
+        trusted: { type: "boolean" },
+      },
+      additionalProperties: false,
+    },
+  },
+}, async (request) => {
+  return state.addRepo(request.body);
+});
+
+app.post<{ Body: RepoRemovePayload }>("/api/repos/remove", {
+  schema: {
+    body: {
+      type: "object",
+      required: ["repoId"],
+      properties: {
+        repoId: { type: "string", minLength: 1 },
+      },
+      additionalProperties: false,
+    },
+  },
+}, async (request) => {
+  return state.removeRepo(request.body);
+});
 
 app.get("/api/session", async () => state.getSnapshot());
 
@@ -205,6 +283,8 @@ app.get<{ Params: { checkpointNumber: string } }>("/api/session/checkpoints/:che
 });
 
 app.get("/api/repo/sessions", async () => state.getSessionIndex());
+
+app.post("/api/repo/sessions/clear", async () => state.clearSessionHistory());
 
 app.get("/api/validation/live-policy", async () => loadLivePolicyValidationReport());
 
@@ -277,6 +357,23 @@ app.post<{ Body: SessionModelSelectionPayload }>("/api/session/model", {
   },
 }, async (request) => {
   return state.setModel(request.body.model);
+});
+
+app.post<{ Body: SessionAgentSelectionPayload }>("/api/session/agent", {
+  schema: {
+    body: {
+      type: "object",
+      required: ["agent"],
+      properties: {
+        agent: {
+          anyOf: [{ type: "string", minLength: 1 }, { type: "null" }],
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+}, async (request) => {
+  return state.setAgent(request.body.agent);
 });
 
 const recoverSessionSchema = {
@@ -402,7 +499,7 @@ try {
   } else {
     console.log("\n[Auth] TOTP secret loaded from ~/.joudo/totp-secret");
     console.log("[Auth] Open your Authenticator app and enter the 6-digit code on the web UI.");
-    console.log("[Auth] To re-pair, delete ~/.joudo/totp-secret and restart the bridge.\n");
+    console.log("[Auth] To re-pair, use the local Joudo desktop panel or delete ~/.joudo/totp-secret and restart the bridge.\n");
   }
 } catch (error) {
   app.log.error(error);

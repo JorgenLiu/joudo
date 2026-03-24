@@ -18,22 +18,25 @@ export function RepoInstructionPanel({
   return (
     <section className="panel instructionPanel">
       <div className="sectionHeader">
-        <h2>Repo Context</h2>
+        <h2>Repo 备注</h2>
         <span>{repoInstruction?.updatedAt ? `备注更新于 ${new Date(repoInstruction.updatedAt).toLocaleTimeString()}` : "尚未加载"}</span>
       </div>
 
       {repoInstruction ? (
         <>
-          <p className="panelLead">当前上下文会根据 repo 路径和 policy 自动生成；用户只需要补充少量长期备注。</p>
-
           <div className="instructionBlock">
-            <strong>自动生成</strong>
+            <div className="moduleBlockHeader">
+              <strong>自动上下文</strong>
+              <small>只读</small>
+            </div>
             <pre className="instructionReadonly">{repoInstruction.generatedContent}</pre>
           </div>
 
           <div className="instructionBlock">
-            <strong>用户备注</strong>
-            <small>保存路径：{repoInstruction.path}</small>
+            <div className="moduleBlockHeader">
+              <strong>用户备注</strong>
+              <small>保存路径：{repoInstruction.path}</small>
+            </div>
             <textarea
               className="instructionNotes"
               value={instructionDraft}
@@ -49,7 +52,7 @@ export function RepoInstructionPanel({
           </div>
         </>
       ) : (
-        <p className="emptyState">当前仓库的 repo context 会在这里显示。</p>
+        <p className="emptyState">当前没有 repo 备注。</p>
       )}
     </section>
   );

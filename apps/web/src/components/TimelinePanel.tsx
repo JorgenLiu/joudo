@@ -77,7 +77,7 @@ export function TimelinePanel({ timeline }: TimelinePanelProps) {
           ) : null}
         </div>
       ) : (
-        <p className="emptyState">会话事件会在这里累计，方便回看整轮执行过程。</p>
+        <p className="emptyState">当前没有时间线事件。</p>
       )}
     </div>
   );

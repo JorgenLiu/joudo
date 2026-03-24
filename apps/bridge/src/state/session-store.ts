@@ -152,6 +152,9 @@ export function snapshotForContext(
     policy: snapshotPolicyForContext(context),
     model: context?.currentModel ?? defaultModel,
     availableModels,
+    agent: context?.currentAgent ?? null,
+    availableAgents: context?.availableAgents ?? [],
+    agentCatalog: context?.agentCatalog ?? { globalCount: 0, repoCount: 0, totalCount: 0 },
     auth: authState,
     lastPrompt: context?.lastPrompt ?? null,
     approvals: context?.approvalState.approvals ?? [],
@@ -247,7 +250,7 @@ export function queuePersistence(
           createdAt: context.lifecycle.joudoSessionCreatedAt!,
           lastKnownCopilotSessionId: context.lifecycle.lastKnownCopilotSessionId,
           latestTurnWriteJournal: serializeTurnWriteJournal(context.turns.latestTurnWriteJournal),
-          snapshot: snapshotForContext(context, deps.authState, deps.availableModels, deps.defaultModel, status),
+          snapshot: stripRuntimeOnlyAgentState(snapshotForContext(context, deps.authState, deps.availableModels, deps.defaultModel, status)),
         });
         await saveSessionIndex(context.repo.rootPath, nextIndex);
         return; // success
@@ -287,4 +290,17 @@ export function queuePersistence(
     console.error("Failed to persist Joudo repo state after retries", error);
     deps.onPersistenceError?.(context.repo.id, error);
   });
+}
+
+function stripRuntimeOnlyAgentState(snapshot: SessionSnapshot): SessionSnapshot {
+  return {
+    ...snapshot,
+    agent: null,
+    availableAgents: [],
+    agentCatalog: {
+      globalCount: 0,
+      repoCount: 0,
+      totalCount: 0,
+    },
+  };
 }

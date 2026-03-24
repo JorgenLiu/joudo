@@ -6,12 +6,21 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1421",
     "build": "vite build",
+    "prepare:bundle-runtime": "node scripts/prepare-bundle-runtime.mjs",
+    "validate:packaged-runtime": "node scripts/validate-packaged-runtime.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:app": "tauri build --bundles app",
+    "tauri:build:dmg": "pnpm tauri:build:app && node scripts/build-dmg.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
+    "@types/qrcode": "^1.5.6",
     "typescript": "^5.8.2",
     "vite": "^6.2.1"
   }

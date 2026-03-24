@@ -124,6 +124,10 @@ export function ApprovalPanel({ approvals, latestPersistedApproval = null, onRes
                   </div>
                   <span className={`statusTag ${approval.riskLevel}`}>{approval.riskLevel === "high" ? "高风险" : "中风险"}</span>
                 </div>
+                <div className="approvalTopline">
+                  <span className="approvalToplineLabel">Target</span>
+                  <span className="approvalToplineValue">{approval.target}</span>
+                </div>
                 <p>{approval.rationale}</p>
                 <CompactText text={approval.commandPreview} as="code" mono maxChars={200} />
                 <details className="collapsible approvalDetailFields">
@@ -173,7 +177,7 @@ export function ApprovalPanel({ approvals, latestPersistedApproval = null, onRes
           })}
         </div>
       ) : (
-        <p className="emptyState">真实会话遇到权限请求时，这里会出现网页审批卡片。</p>
+        <p className="emptyState">当前没有待审批请求。</p>
       )}
     </section>
   );

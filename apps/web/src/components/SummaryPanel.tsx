@@ -31,7 +31,7 @@ function normalizeSummary(summary: SessionSnapshot["summary"]): SessionSummary |
     : [];
 
   return {
-    title: typeof summary.title === "string" && summary.title.length > 0 ? summary.title : "已恢复执行摘要",
+    title: typeof summary.title === "string" && summary.title.length > 0 ? summary.title : "result",
     body: typeof summary.body === "string" ? summary.body : "",
     steps,
     executedCommands: Array.isArray(summary.executedCommands) ? summary.executedCommands : [],
@@ -42,56 +42,56 @@ function normalizeSummary(summary: SessionSnapshot["summary"]): SessionSummary |
     nextAction:
       typeof summary.nextAction === "string" && summary.nextAction.length > 0
         ? summary.nextAction
-        : "先查看本轮已恢复的摘要和时间线，再决定是否继续下一步。",
+        : "等待后续操作。",
   };
 }
 
 function summaryOutcomeTitle(snapshot: SessionSnapshot) {
   if (!snapshot.summary) {
-    return "尚未生成执行摘要";
+    return "idle";
   }
 
   if (snapshot.status === "running") {
-    return "本轮仍在执行中";
+    return "running";
   }
 
   if (snapshot.status === "awaiting-approval") {
-    return "当前在等待你的确认";
+    return "approval_pending";
   }
 
   if (snapshot.status === "recovering") {
-    return "正在恢复历史记录";
+    return "recovering";
   }
 
   if (snapshot.status === "timed-out") {
-    return "当前保留的是一轮超时结果";
+    return "timed_out";
   }
 
-  return "当前摘要已经收口";
+  return "done";
 }
 
 function summaryOutcomeDetail(snapshot: SessionSnapshot) {
   if (!snapshot.summary) {
-    return "发送第一条提示词后，这里会开始整理本轮结果、关键风险和下一步。";
+    return "result_pending";
   }
 
   if (snapshot.status === "running") {
-    return "摘要已经开始记录当前任务，但结果仍可能继续变化。";
+    return "result_streaming";
   }
 
   if (snapshot.status === "awaiting-approval") {
-    return "当前结果还没有最终收口，先处理审批才能继续判断这一轮会如何结束。";
+    return "approval_blocked";
   }
 
   if (snapshot.status === "recovering") {
-    return "Joudo 正在把历史记录和当前状态重新整理成可继续使用的视图。";
+    return "history_recovering";
   }
 
   if (snapshot.status === "timed-out") {
-    return "这轮没有在等待窗口内完成，但已保留到目前为止可解释的结果。";
+    return "partial_result";
   }
 
-  return "这一轮当前能解释的结果、风险和下一步已经整理到下面。";
+  return "result_ready";
 }
 
 function summaryCountLabel(count: number, unit: string) {
@@ -136,12 +136,16 @@ export function SummaryPanel({ snapshot }: SummaryPanelProps) {
   return (
     <>
       <div className="sectionHeader">
-        <h2>摘要</h2>
+        <h2>summary</h2>
         <span>{snapshot.model} / 最近更新 {new Date(snapshot.updatedAt).toLocaleTimeString()}</span>
       </div>
 
       {summary ? (
         <div className="summaryCard">
+          <div className="summaryTopline">
+            <span className="summaryToplineLabel">state</span>
+            <span className="summaryToplineValue">{summary.title}</span>
+          </div>
           <div className="summaryOutcomeHeader">
             <div>
               <h3>{summaryOutcomeTitle(snapshot)}</h3>
@@ -157,7 +161,7 @@ export function SummaryPanel({ snapshot }: SummaryPanelProps) {
 
           <div className="activityCheckpointSection">
             <div className="activitySubsectionHeader">
-              <strong>本轮执行步骤</strong>
+              <strong>steps</strong>
               <span>{summary.steps.length} 条</span>
             </div>
             <div className="activityItemList">
@@ -184,34 +188,34 @@ export function SummaryPanel({ snapshot }: SummaryPanelProps) {
 
           <dl className="summaryList">
             <div>
-              <dt>执行命令 <span className="summaryInlineBadge">{summary.executedCommands.length}</span></dt>
-              <dd><RenderSummaryItems items={summary.executedCommands} emptyLabel="暂无" /></dd>
+              <dt>commands <span className="summaryInlineBadge">{summary.executedCommands.length}</span></dt>
+              <dd><RenderSummaryItems items={summary.executedCommands} emptyLabel="当前没有执行命令" /></dd>
             </div>
             <div>
-              <dt>审批类型 <span className="summaryInlineBadge">{summary.approvalTypes?.length ?? 0}</span></dt>
-              <dd><RenderSummaryItems items={summary.approvalTypes ?? []} emptyLabel="暂无" renderItem={(item) => approvalTypeLabel(item as ApprovalType)} /></dd>
+              <dt>approval_types <span className="summaryInlineBadge">{summary.approvalTypes?.length ?? 0}</span></dt>
+              <dd><RenderSummaryItems items={summary.approvalTypes ?? []} emptyLabel="当前没有审批类型" renderItem={(item) => approvalTypeLabel(item as ApprovalType)} /></dd>
             </div>
             <div>
-              <dt>文件变更 <span className="summaryInlineBadge">{summary.changedFiles.length}</span></dt>
-              <dd><RenderSummaryItems items={summary.changedFiles} emptyLabel="暂无" /></dd>
+              <dt>files <span className="summaryInlineBadge">{summary.changedFiles.length}</span></dt>
+              <dd><RenderSummaryItems items={summary.changedFiles} emptyLabel="当前没有文件变更" /></dd>
             </div>
             <div>
-              <dt>检查 <span className="summaryInlineBadge">{summary.checks.length}</span></dt>
-              <dd><RenderSummaryItems items={summary.checks} emptyLabel="暂无" /></dd>
+              <dt>checks <span className="summaryInlineBadge">{summary.checks.length}</span></dt>
+              <dd><RenderSummaryItems items={summary.checks} emptyLabel="当前没有检查结果" /></dd>
             </div>
             <div>
-              <dt>风险 <span className="summaryInlineBadge">{summary.risks.length}</span></dt>
-              <dd><RenderSummaryItems items={summary.risks} emptyLabel="暂无" /></dd>
+              <dt>risks <span className="summaryInlineBadge">{summary.risks.length}</span></dt>
+              <dd><RenderSummaryItems items={summary.risks} emptyLabel="当前没有风险项" /></dd>
             </div>
           </dl>
 
           <div className="nextAction">
-            <span>下一步</span>
+            <span>next_action</span>
             <strong>{summary.nextAction}</strong>
           </div>
         </div>
       ) : (
-        <p className="emptyState">bridge 还没有产生摘要。</p>
+        <p className="emptyState">当前没有 summary。</p>
       )}
     </>
   );

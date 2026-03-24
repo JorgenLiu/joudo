@@ -1,0 +1,107 @@
+name: Release Desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_dmg:
+        description: Build a DMG artifact after the app build
+        required: true
+        default: true
+        type: boolean
+      prepare_signing:
+        description: Run the signing readiness placeholder stage
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-app:
+    name: Build unsigned app
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Build Packaged Desktop
+        run: corepack pnpm build:desktop
+
+      - name: Validate Packaged Desktop
+        run: corepack pnpm validate:desktop:packaged
+
+      - name: Upload Joudo.app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Joudo.app-macos-release
+          path: apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app
+          if-no-files-found: error
+
+  build-dmg:
+    name: Build dmg artifact
+    runs-on: macos-latest
+    needs: build-app
+    if: ${{ inputs.build_dmg }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Build DMG
+        run: corepack pnpm build:desktop:dmg
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Joudo.dmg-macos-release
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+  signing-readiness:
+    name: Signing and notarization readiness
+    runs-on: macos-latest
+    needs:
+      - build-app
+    if: ${{ inputs.prepare_signing }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Explain current signing status
+        run: |
+          echo "Signing/notarization is intentionally not wired yet."
+          echo "Next stage should add certificate import, codesign, notarytool submission, and stapling once secrets are available."

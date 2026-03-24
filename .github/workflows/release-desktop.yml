@@ -52,11 +52,18 @@ jobs:
       - name: Validate Packaged Desktop
         run: corepack pnpm validate:desktop:packaged
 
-      - name: Upload Joudo.app
+      - name: Archive Joudo.app
+        run: |
+          mkdir -p apps/desktop/src-tauri/target/release/bundle/artifacts
+          ditto -c -k --keepParent \
+            apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app \
+            apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo.app.zip
+
+      - name: Upload archived Joudo.app
         uses: actions/upload-artifact@v4
         with:
           name: Joudo.app-macos-release
-          path: apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app
+          path: apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo.app.zip
           if-no-files-found: error
 
   build-dmg:
@@ -78,7 +85,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Joudo.app-macos-release
-          path: apps/desktop/src-tauri/target/release/bundle/macos
+          path: apps/desktop/src-tauri/target/release/bundle/artifacts
+
+      - name: Restore Joudo.app bundle
+        run: |
+          mkdir -p apps/desktop/src-tauri/target/release/bundle/macos
+          ditto -x -k \
+            apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo.app.zip \
+            apps/desktop/src-tauri/target/release/bundle/macos
 
       - name: Build DMG
         run: node apps/desktop/scripts/build-dmg.mjs

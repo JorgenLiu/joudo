@@ -180,10 +180,11 @@
 1. `build-app`
    - 构建 unsigned `.app`
    - 跑 packaged desktop 回归
-   - 上传 `.app` artifact
+   - 归档并上传 `Joudo.app` artifact
 
 2. `build-dmg`
    - 按输入决定是否构建 `.dmg`
+   - 下载并解包归档后的 `Joudo.app`
    - 上传 `.dmg` artifact
 
 3. `signing-readiness`

@@ -4,4 +4,5 @@ dist
 .joudo/
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/schemas/
-apps/desktop/src-tauri/bundle-resources/
+apps/desktop/src-tauri/bundle-resources/**
+!apps/desktop/src-tauri/bundle-resources/.gitkeep

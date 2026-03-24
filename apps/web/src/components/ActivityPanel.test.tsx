@@ -266,7 +266,7 @@ describe("ActivityPanel", () => {
       />,
     );
 
-    expect(screen.getByText("bridge 还没有生成执行轨迹。发送第一条提示词后，这里会显示当前阶段、阻塞点和最近动作。")).toBeInTheDocument();
+    expect(screen.getByText("当前没有执行轨迹。")).toBeInTheDocument();
   });
 
   it("renders legacy activity records with missing arrays without crashing", () => {

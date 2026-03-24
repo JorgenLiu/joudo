@@ -83,7 +83,7 @@ describe("ValidationPanel", () => {
   it("shows the empty state when no validation report exists", () => {
     render(<ValidationPanel validationReport={null} isRefreshingValidation={false} onRefreshValidation={vi.fn()} />);
 
-    expect(screen.getByText("还没有 live policy 回归结果。先运行 corepack pnpm validate:policy-live，再刷新这里。")).toBeInTheDocument();
+    expect(screen.getByText("当前没有 live policy 回归结果。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "读取结果" })).toBeInTheDocument();
   });
 });

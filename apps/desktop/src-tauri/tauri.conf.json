@@ -5,7 +5,7 @@
   "identifier": "dev.joudo.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "pnpm build:packaging",
     "beforeBundleCommand": "pnpm prepare:bundle-runtime",
     "devUrl": "http://127.0.0.1:1421",
     "frontendDist": "../dist"

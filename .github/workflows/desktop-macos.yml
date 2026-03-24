@@ -16,6 +16,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - .github/workflows/desktop-macos.yml
+      - apps/desktop/**
+      - apps/bridge/**
+      - apps/web/**
+      - packages/shared/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig.base.json
 
 concurrency:
   group: desktop-macos-${{ github.ref }}
@@ -29,6 +39,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4

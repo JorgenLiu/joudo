@@ -260,6 +260,8 @@ async function main() {
     "utf8",
   );
 
+  await writeFile(path.join(bundleResourcesRoot, ".gitkeep"), "keep\n", "utf8");
+
   console.log(`Bundled Node runtime prepared: ${nodeVersion}`);
   console.log(`Runtime source: ${path.join(nodeRuntimeRoot, "bin", "node")}`);
   console.log(`Bundle resources: ${bundleResourcesRoot}`);

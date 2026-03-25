@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createHmac } from "node:crypto";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { closeSync, existsSync, mkdtempSync, mkdirSync, openSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -33,6 +33,18 @@ function readCommandOutput(command, args) {
     return execFileSync(command, args, { encoding: "utf8" }).trim();
   } catch (error) {
     return error?.stdout?.toString()?.trim() || "";
+  }
+}
+
+function readTextIfExists(path) {
+  if (!path || !existsSync(path)) {
+    return "";
+  }
+
+  try {
+    return readFileSync(path, "utf8").trim();
+  } catch {
+    return "";
   }
 }
 
@@ -82,7 +94,7 @@ async function readJson(path, init) {
   return body;
 }
 
-async function waitForHealth(expectUp, timeoutMs = 30_000) {
+async function waitForHealth(expectUp, timeoutMs = 30_000, processHandle = null) {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
@@ -112,7 +124,21 @@ async function waitForHealth(expectUp, timeoutMs = 30_000) {
   }
 
   if (expectUp) {
-    throw new Error("bridge health check timed out");
+    const listener = readCommandOutput("lsof", ["-nP", "-iTCP:8787", "-sTCP:LISTEN"]);
+    const processMatch = readCommandOutput("pgrep", ["-fal", APP_BINARY]);
+    const stderrOutput = readTextIfExists(processHandle?.stderrPath);
+    const stdoutOutput = readTextIfExists(processHandle?.stdoutPath);
+
+    const diagnostics = [
+      listener ? `listener:\n${listener}` : "",
+      processMatch ? `process:\n${processMatch}` : "",
+      stderrOutput ? `stderr:\n${stderrOutput}` : "",
+      stdoutOutput ? `stdout:\n${stdoutOutput}` : "",
+    ].filter(Boolean);
+
+    throw new Error(
+      diagnostics.length ? `bridge health check timed out\n${diagnostics.join("\n\n")}` : "bridge health check timed out",
+    );
   }
 
   const listener = readCommandOutput("lsof", ["-nP", "-iTCP:8787", "-sTCP:LISTEN"]);
@@ -121,6 +147,24 @@ async function waitForHealth(expectUp, timeoutMs = 30_000) {
 
 function launchPackagedApp() {
   assert(existsSync(APP_BUNDLE), `packaged app bundle not found at ${APP_BUNDLE}`);
+  assert(existsSync(APP_BINARY), `packaged app binary not found at ${APP_BINARY}`);
+
+  if (process.env.GITHUB_ACTIONS === "true") {
+    const logsRoot = mkdtempSync(join(tmpdir(), "joudo-packaged-launch-"));
+    const stdoutPath = join(logsRoot, "stdout.log");
+    const stderrPath = join(logsRoot, "stderr.log");
+    const stdoutFd = openSync(stdoutPath, "a");
+    const stderrFd = openSync(stderrPath, "a");
+    const child = spawn(APP_BINARY, [], {
+      detached: true,
+      stdio: ["ignore", stdoutFd, stderrFd],
+    });
+    child.unref();
+    closeSync(stdoutFd);
+    closeSync(stderrFd);
+    return { launched: true, pid: child.pid, stdoutPath, stderrPath };
+  }
+
   execFileSync("open", ["-n", APP_BUNDLE], { stdio: "ignore" });
   return { launched: true };
 }
@@ -132,6 +176,10 @@ async function stopPackagedApp(processHandle) {
 
   if (tryExec("osascript", ["-e", 'tell application "Joudo" to quit'])) {
     return;
+  }
+
+  if (processHandle.pid) {
+    tryExec("kill", [String(processHandle.pid)]);
   }
 
   tryExec("pkill", ["-f", APP_BINARY]);
@@ -151,7 +199,7 @@ async function run() {
 
   try {
     app = launchPackagedApp();
-    const healthBefore = await waitForHealth(true);
+    const healthBefore = await waitForHealth(true, 30_000, app);
 
     const setupBefore = await readJson("/api/auth/totp/setup");
     const rebind = await readJson("/api/auth/totp/rebind", { method: "POST" });
@@ -220,7 +268,7 @@ async function run() {
     await waitForHealth(false, 15_000);
 
     app = launchPackagedApp();
-    const healthAfterRestart = await waitForHealth(true);
+    const healthAfterRestart = await waitForHealth(true, 30_000, app);
     const setupAfterRestart = await readJson("/api/auth/totp/setup");
     assert(setupAfterRestart.secret === rebind.secret, "TOTP secret did not persist across packaged app restart");
 

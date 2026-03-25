@@ -28,7 +28,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: macos-13
+            runner: macos-15-intel
           - arch: arm64
             runner: macos-14
 
@@ -85,7 +85,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: macos-13
+            runner: macos-15-intel
           - arch: arm64
             runner: macos-14
 
@@ -124,7 +124,7 @@ jobs:
 
   signing-readiness:
     name: Signing and notarization readiness
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs:
       - build-app
     if: ${{ inputs.prepare_signing }}

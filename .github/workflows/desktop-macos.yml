@@ -33,7 +33,7 @@ concurrency:
 
 jobs:
   build-packaged-desktop:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     timeout-minutes: 60
 
     steps:

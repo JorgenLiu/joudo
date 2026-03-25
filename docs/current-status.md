@@ -1,138 +1,105 @@
-# Joudo 当前状态
+# Joudo 当前状态（2026-03-25）
 
 ## 一句话结论
 
-Joudo 当前已经是一个可运行的本地 bridge + Web UI MVP，主链路可用，当前工作的重心是治理、解释和收口，而不是验证是否可行。
+Joudo 是一个可运行的本地 Copilot bridge + 移动优先 Web UI，主链路已打通，CI/CD 已接入，desktop 打包已稳定，当前处于首次 unsigned 测试版分发阶段。
 
-## 当前可用能力
+## 仓库结构
+
+```
+joudo/
+├── apps/
+│   ├── bridge/     # Node.js Fastify 后端，驱动 Copilot SDK
+│   ├── web/        # React 移动优先 Web UI
+│   └── desktop/    # Tauri v2 macOS 桌面壳
+├── packages/
+│   └── shared/     # 共享类型定义（无运行时代码）
+├── scripts/        # 启动器、烟测、policy 验证
+├── docs/           # 项目文档
+└── .github/        # CI/CD workflows
+```
+
+## 核心数字
+
+| 指标 | 数值 |
+|------|------|
+| Bridge API 路由 | 26（17 POST / 8 GET / 1 WS） |
+| Web 组件 | 28 |
+| Bridge 状态模块 | 30 |
+| 测试文件 | 26（Bridge 16 + Web 10） |
+| CI Workflow | 3（ci / desktop-macos / release-desktop） |
+| 产品版本 | 0.1.0 |
+
+## 已完成的能力
 
 ### 真实会话闭环
 
-当前网页可以：
+- 选择仓库 → 发送 prompt → 驱动 Copilot SDK → 获取结构化 snapshot
+- repo-scoped 历史保存、history-only 恢复、best-effort attach
+- 上一轮整体回退判断（基于 write journal + watcher）
 
-- 选择仓库
-- 发送 prompt
-- 驱动真实 Copilot 会话
-- 接收结构化 session snapshot
+### 策略与审批
 
-### 结构化产品面
+- 运行时 repo policy 加载与判定（tool / shell / read / write / URL）
+- 三态审批：拒绝 / 允许本次 / 允许并加入 policy
+- write 持久化走窄 allowlist，不会升级为全局 `allow_tools: write`
+- 高风险解释器和危险命令模式默认拒绝
 
-当前 Web UI 已包含：
+### 产品 UI
 
-- 仓库列表
-- Prompt 输入
-- 审批队列
-- Repo Policy 面板
-- Summary
-- Timeline
-- Activity
-- Session History
-- 错误面板
-- 当前 repo 的 agent 选择与 repo/global agent 数量
+- 移动优先 Web UI：4 tab（Console / Summary / Policy / History）
+- 品牌视觉体系：Quiet Sanctuary + Bridge Seal 图标
+- desktop 控制面板：bridge 状态管理、TOTP 查看/重绑、仓库管理、LAN 地址
 
-### 运行时策略与审批
+### 认证
 
-当前 bridge 已把 repo policy 接入真实权限判定，支持：
+- TOTP（RFC 6238）本地认证
+- Session token 自动续期
+- 重绑设备支持
+- desktop 本地回环免认证旁路
 
-- tool allow / confirm / deny
-- shell allow / confirm / deny
-- read path allow / confirm
-- write path allow / confirm / deny
-- URL allow / deny
+### desktop 打包
 
-网页审批支持：
+- Tauri v2 macOS `.app`，内置受控 Node runtime + bridge + web 产物
+- packaged desktop 不依赖宿主机 Node/pnpm
+- 自动化回归脚本覆盖：bridge 拉起、TOTP、repo 管理、重启恢复
+- 桌面壳为菜单栏托盘 app：启动后驻留 tray，bridge 自动拉起，关窗回 tray
 
-- 拒绝
-- 允许本次
-- 允许并加入 policy
+### CI/CD
 
-### 历史、恢复与回退判断
+- `ci.yml`：PR + main 推送 → typecheck + tests + build（Ubuntu）
+- `desktop-macos.yml`：桌面相关路径变更 → macOS `.app` 构建 + packaged 回归
+- `release-desktop.yml`：手动触发 → 双架构（x64 / arm64）`.app` + `.dmg` 产物
 
-当前 bridge 已支持：
+### 分发
 
-- repo-scoped 历史 session index 与 snapshot
-- history-only 恢复
-- best-effort attach
-- 上一轮整体回退判断
+- 双架构 DMG：`macos-15-intel`（x64）/ `macos-14`（arm64）
+- 当前为 unsigned developer test build
+- 首次打开需在"系统设置 → 隐私与安全性"手动允许
+- 尚无 Apple Developer 证书，签名/公证待后续接入
 
-### 运行时 agent
+### 会话恢复
 
-当前 bridge 会在运行时扫描：
-
-- Copilot 全局 `agents/`
-- 当前 repo `.github/agents/`
-
-如果选中的 agent 在下一轮前消失，bridge 会自动切回默认模式并提醒用户。
-
-当前手机 Web UI 也会展示 agent 区域；如果当前没有发现任何 agent，不再直接隐藏，而是明确提示需要在 `~/.copilot/agents/` 或当前 repo 的 `.github/agents/` 下提供 agent 文件。
-
-当前明确边界是：Joudo bridge 暂时只暴露文件系统中可发现的 Copilot agent，不包含 VS Code 聊天面板里注入的编辑器内 agent（例如当前会话里可见的 `ui-design`）。
+- repo-scoped 持久化：`.joudo/sessions-index.json` + `.joudo/sessions/<id>/snapshot.json`
+- history-only 恢复：只还原记录，不续跑旧执行
+- best-effort attach：尝试接回旧 Copilot 会话，失败自动退回 history-only
+- 旧审批不会被假装成仍然有效
+- agent 选择不持久化，每次 bridge 启动重新扫描
 
 ## 当前明确边界
 
-### 不是远程 shell
+- **不是远程 shell**：不做终端转发或 TUI 抓取
+- **不是强一致恢复器**：恢复优先保证事实可解释，不保证旧会话安全续跑
+- **rollback 只支持上一轮整体回退**：无 checkpoint restore，无任意 turn rewind
+- **agent 是运行时状态**：来自文件系统扫描，不持久化到历史快照
+- **当前无 HTTPS/WSS**：仅限 LAN 使用
 
-Joudo 不是终端转发器，也不做 TUI 抓取。
+## 当前风险
 
-### 不是强一致恢复器
-
-恢复优先保证事实可解释，不保证任何旧会话都能安全继续执行。
-
-### agent 选择是运行时状态
-
-`.joudo` 历史快照不会持久化 agent 选择和 agent 列表。
-
-### rollback 仍然只支持上一轮整体回退
-
-当前没有 checkpoint restore，也没有任意历史 turn rewind。
-
-### 当前仍以开发态交付为主
-
-主交付仍然是：
-
-- `apps/bridge`
-- `apps/web`
-- `apps/desktop` 作为本地控制面
-
-当前默认 desktop 打包链路已经收敛为生成 `.app`，不再把 `.dmg` 成功与否作为主发布路径是否可用的前置条件。
-
-### 桌面控制面的当前启动方式
-
-当前 macOS 桌面控制面是菜单栏托盘 app，而不是常驻前台主窗口。
-
-当前行为是：
-
-- 启动 Joudo desktop 后先驻留在菜单栏托盘
-- bridge 会随桌面控制面自动拉起
-- 点击菜单栏托盘图标可打开控制面板窗口
-- 关闭窗口时不会退出 app，而是回到托盘继续驻留
-
-### 当前 desktop packaging 结论
-
-当前已验证：
-
-- `corepack pnpm build:desktop` 可稳定产出 `.app`
-- 默认产物路径是 `apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app`
-- packaged `.app` 会从 `Contents/Resources/runtime/node/bin/node` 拉起 bridge，而不是依赖宿主机 Node
-- packaged bridge 已验证会监听 `8787`，bridge 入口和 Copilot 子进程都来自 app bundle 内路径
-
-当前已知限制：
-
-- 默认 `.dmg` 现已改走简化的 `hdiutil create -srcfolder Joudo.app` 路径
-- 这样绕开了 Tauri create-dmg 辅助脚本在这台 macOS Ventura 开发机上的临时磁盘镜像卸载失败问题
-- 当前 GitHub Actions release / desktop workflow 已固定在 `macos-15-intel` runner 上产出 x64 包，避免 `macos-latest` 随平台切到 Apple Silicon 后生成 `aarch64` 应用，导致这台 Intel 开发机提示“不支持此应用程序”
-- release workflow 现已支持双架构分发：手动 release 时会分别生成 `x64` 和 `arm64` 的 `.app` / `.dmg` artifact，并在产物名中显式写明架构
-
-## 当前主要风险
-
-- `/undo` 仍然不是强事务回滚
-- 上游 CLI / SDK 行为仍可能影响恢复边界
-- policy 治理仍需要继续收紧
-
-## 当前推荐阅读顺序
-
-1. `README.md`
-2. `docs/architecture.md`
-3. `docs/implementation-notes.md`
-4. `docs/policy.md`
-5. `docs/next-step-plan.md`
+| 风险 | 说明 |
+|------|------|
+| `/undo` 非强事务 | 产品事实，不会因 UI 改善消失 |
+| 上游 CLI/SDK 语义漂移 | attach、事件流和恢复行为受上游版本影响 |
+| policy 累积 | allowlist 只增不删，缺乏回收入口 |
+| 路径 TOCTOU | 检查与执行之间存在时间窗口，本地单用户场景下风险可控 |
+| unsigned 分发 | Gatekeeper 拦截，需手动放行 |

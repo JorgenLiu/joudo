@@ -246,21 +246,14 @@ corepack pnpm build:desktop:dmg
 
 ## 文档地图
 
-- [docs/architecture.md](docs/architecture.md): 当前架构与边界
-- [docs/current-status.md](docs/current-status.md): 当前产品状态判断
-- [docs/policy.md](docs/policy.md): repo policy 模型与运行时语义
-- [docs/implementation-notes.md](docs/implementation-notes.md): 当前实现说明与代码导读
-- [docs/session-recovery-plan.md](docs/session-recovery-plan.md): 恢复与回退边界
-- [docs/next-step-plan.md](docs/next-step-plan.md): 已确认的下一阶段主线
-- [docs/progress-summary.md](docs/progress-summary.md): 阶段性进度摘要
-- [docs/onboarding.md](docs/onboarding.md): 开发与演示环境上手
-- [docs/acp-demo-plan.md](docs/acp-demo-plan.md): ACP demo 现状
-- [docs/packaging-release-plan.md](docs/packaging-release-plan.md): 打包与发布方向
+- [docs/current-status.md](docs/current-status.md): 当前产品状态与能力评估
+- [docs/iteration-plan.md](docs/iteration-plan.md): 迭代计划与人工回归清单
+- [docs/policy-guide.md](docs/policy-guide.md): policy 使用指南
+- [docs/quickstart.md](docs/quickstart.md): 快速上手（开发环境 + 测试版安装）
+- [docs/examples/joudo-policy.recommended.yml](docs/examples/joudo-policy.recommended.yml): 推荐 policy 模板
 
 ## 当前最值得关注的下一步
 
-当前最缺的不是新的执行通道，而是 policy 治理闭环。
+当前最缺的不是新的执行通道，而是 policy 治理闭环和分发信任链。
 
-Joudo 现在已经能把审批结果写进 allowlist，但还缺少对这些规则的删除、回收、来源解释和风险可视化。对一个以“受控代理”为卖点的产品来说，这是比继续扩展更多底层实验更紧迫的方向。
-
-对应的最新计划见 [docs/next-step-plan.md](docs/next-step-plan.md)。
+详见 [docs/iteration-plan.md](docs/iteration-plan.md)。

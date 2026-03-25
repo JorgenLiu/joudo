@@ -61,11 +61,11 @@ Joudo is a local-first, web-first mobile access frontend for GitHub Copilot CLI.
 
 ## Documentation expectations
 
-Maintain `docs/next-step-plan.md` as the source of truth for pending next-step planning.
+Maintain `docs/iteration-plan.md` as the source of truth for pending iteration planning.
 
 Whenever a meaningful task finishes or requirements/plans change:
 
-- review `docs/next-step-plan.md`
+- review `docs/iteration-plan.md`
 - update completed items, current decisions, and the next implementation candidates
 - record any code-change plans or requirement-change plans there before they drift into chat-only context
 
@@ -80,7 +80,4 @@ When adding features, update the relevant docs in `docs/` if the change affects:
 When changing bridge state or recovery behavior, keep these docs aligned at minimum:
 
 - `docs/current-status.md`
-- `docs/implementation-notes.md`
-- `docs/progress-summary.md`
-- `docs/session-recovery-plan.md`
-- `docs/acp-demo-plan.md` when demo validation status changes
+- `docs/iteration-plan.md`

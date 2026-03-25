@@ -20,9 +20,17 @@ concurrency:
 
 jobs:
   build-app:
-    name: Build unsigned app
-    runs-on: macos-latest
+    name: Build unsigned app (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-14
 
     steps:
       - name: Checkout
@@ -57,21 +65,29 @@ jobs:
           mkdir -p apps/desktop/src-tauri/target/release/bundle/artifacts
           ditto -c -k --keepParent \
             apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app \
-            apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo.app.zip
+            apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo-${{ matrix.arch }}.app.zip
 
       - name: Upload archived Joudo.app
         uses: actions/upload-artifact@v4
         with:
-          name: Joudo.app-macos-release
-          path: apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo.app.zip
+          name: Joudo.app-macos-${{ matrix.arch }}-release
+          path: apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo-${{ matrix.arch }}.app.zip
           if-no-files-found: error
 
   build-dmg:
-    name: Build dmg artifact
-    runs-on: macos-latest
+    name: Build dmg artifact (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     needs: build-app
     if: ${{ inputs.build_dmg }}
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-14
 
     steps:
       - name: Checkout
@@ -84,29 +100,31 @@ jobs:
       - name: Download Joudo.app
         uses: actions/download-artifact@v4
         with:
-          name: Joudo.app-macos-release
+          name: Joudo.app-macos-${{ matrix.arch }}-release
           path: apps/desktop/src-tauri/target/release/bundle/artifacts
 
       - name: Restore Joudo.app bundle
         run: |
           mkdir -p apps/desktop/src-tauri/target/release/bundle/macos
           ditto -x -k \
-            apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo.app.zip \
+            apps/desktop/src-tauri/target/release/bundle/artifacts/Joudo-${{ matrix.arch }}.app.zip \
             apps/desktop/src-tauri/target/release/bundle/macos
 
       - name: Build DMG
+        env:
+          JOUDO_DMG_ARCH: ${{ matrix.arch }}
         run: node apps/desktop/scripts/build-dmg.mjs
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
-          name: Joudo.dmg-macos-release
-          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          name: Joudo.dmg-macos-${{ matrix.arch }}-release
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*_${{ matrix.arch }}.dmg
           if-no-files-found: error
 
   signing-readiness:
     name: Signing and notarization readiness
-    runs-on: macos-latest
+    runs-on: macos-13
     needs:
       - build-app
     if: ${{ inputs.prepare_signing }}

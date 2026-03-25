@@ -34,6 +34,8 @@
    - `.github/workflows/release-desktop.yml`
 - `desktop-macos.yml` 现已在 macOS runner 上执行 packaged desktop 回归，`validate:desktop:packaged` 已进入 workflow 质量门
 - `release-desktop.yml` 已把 release 流程拆成手动触发的 `.app`、`.dmg` 和 signing readiness 三个阶段
+- GitHub Actions 的 desktop / release workflow 当前固定使用 `macos-13` Intel runner，避免向 x64 测试用户发出 Apple Silicon-only 包
+- `release-desktop.yml` 现在会在手动 release 时同时构建 `x64` 和 `arm64` 两套 macOS 产物，artifact 名称显式带架构后缀
 
 尚未自动化的部分主要是 tray / window / Dock 交互语义。
 
@@ -178,14 +180,14 @@
 它的目的不是替代日常 CI，而是把 release 阶段拆成手动触发的独立流程：
 
 1. `build-app`
-   - 构建 unsigned `.app`
+   - 分别构建 unsigned `x64` / `arm64` `.app`
    - 跑 packaged desktop 回归
-   - 归档并上传 `Joudo.app` artifact
+   - 归档并上传带架构后缀的 `Joudo.app` artifact
 
 2. `build-dmg`
    - 按输入决定是否构建 `.dmg`
-   - 下载并解包归档后的 `Joudo.app`
-   - 上传 `.dmg` artifact
+   - 分别下载并解包对应架构的 `Joudo.app`
+   - 上传带架构后缀的 `.dmg` artifact
 
 3. `signing-readiness`
    - 当前只是显式占位阶段
@@ -258,6 +260,12 @@
    - 写清最低 macOS 版本
    - 写清当前支持的 CPU 架构
    - 写清当前是否只验证过单架构构建
+
+当前实际支持矩阵（2026-03-25）：
+
+- 已验证发布链路：macOS x64（Intel）
+- 当前 GitHub Actions release 默认产物：macOS x64（`macos-13`）+ macOS arm64（`macos-14`）
+- Apple Silicon 通用包 / universal binary：尚未接入，当前采用双产物分发
 
 4. 补 release notes 模板
    - 包含版本号

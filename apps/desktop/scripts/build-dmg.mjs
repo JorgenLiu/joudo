@@ -11,7 +11,8 @@ const config = JSON.parse(readFileSync(configPath, "utf8"));
 
 const productName = config.productName ?? "Joudo";
 const version = config.version ?? "0.1.0";
-const arch = process.arch === "arm64" ? "aarch64" : process.arch === "x64" ? "x64" : process.arch;
+const arch = process.env.JOUDO_DMG_ARCH?.trim()
+  || (process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "x64" : process.arch);
 
 const bundleRoot = path.join(tauriRoot, "target", "release", "bundle");
 const appPath = path.join(bundleRoot, "macos", `${productName}.app`);

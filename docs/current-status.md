@@ -120,6 +120,8 @@ Joudo 不是终端转发器，也不做 TUI 抓取。
 
 - 默认 `.dmg` 现已改走简化的 `hdiutil create -srcfolder Joudo.app` 路径
 - 这样绕开了 Tauri create-dmg 辅助脚本在这台 macOS Ventura 开发机上的临时磁盘镜像卸载失败问题
+- 当前 GitHub Actions release / desktop workflow 已固定在 `macos-13` Intel runner 上产出 x64 包，避免 `macos-latest` 随平台切到 Apple Silicon 后生成 `aarch64` 应用，导致这台 Intel 开发机提示“不支持此应用程序”
+- release workflow 现已支持双架构分发：手动 release 时会分别生成 `x64` 和 `arm64` 的 `.app` / `.dmg` artifact，并在产物名中显式写明架构
 
 ## 当前主要风险
 

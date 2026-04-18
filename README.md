@@ -1,259 +1,191 @@
 # Joudo
 
-Joudo 是 GitHub Copilot CLI 的本地优先、网页优先移动访问前端。
+> **⚠️ 已存档** — 2026 年 4 月 13 日 GitHub 发布了 `copilot --remote`（CLI 会话远程控制），覆盖了 Joudo 的核心场景。本项目不再活跃开发。详见[存档决策](.ai/decisions/001-project-archive.md)。
 
-它的目标不是把终端搬到手机上，而是在同一局域网里提供一个 repo-scoped、可审批、可恢复、可解释的 Copilot 使用面。当前产品形态是运行在 Mac 本机的 bridge，加上一个移动优先 Web UI。
+Joudo 是 GitHub Copilot CLI 的本地优先、移动优先 Web 前端。它在同一局域网内提供一个 repo-scoped、可审批、可恢复、可解释的 Copilot 操控界面。
 
-## 当前结论
+**项目周期**：2026-03-14 → 2026-03-25（11 天，solo）
+**最终版本**：v0.1.0（unsigned test build）
 
-Joudo 已经不是纯概念验证。
+---
 
-当前仓库已经具备一条真实闭环：
+## 它做了什么
 
-- Web UI 发送 prompt
-- Bridge 驱动真实 Copilot CLI 会话
-- Repo policy 在运行时参与权限判定
-- 网页审批处理策略外请求
-- Summary、Timeline、Activity、History 提供结构化解释
-- 审批结果可以按规则写回 repo policy
+从零到一个完整打包、有 CI/CD 的 macOS 应用：
 
-如果只用一句话概括现在的阶段：这是一个可运行、受控、已打通主链路的 MVP，下一步重点是把治理和产品面收紧，而不是继续堆新的底层能力。
+- **Bridge**：Fastify 5 后端，26 条 API 路由，18 个状态模块，驱动 `@github/copilot-sdk` 会话
+- **Web UI**：React 19 移动优先界面，4 个 tab（Console / Summary / Policy / History）
+- **Desktop**：Tauri 2 macOS 壳，菜单栏托盘应用，内置受控 Node runtime
+- **Policy Engine**：per-repo YAML 策略，shell 命令规范化，三态审批（拒绝 / 允许本次 / 允许并持久化）
+- **Auth**：TOTP (RFC 6238) 本地认证，session token 自动续期
+- **CI/CD**：3 个 GitHub Actions workflow，双架构 DMG (x64 + arm64)
 
-## Joudo 是什么
+### 数字
 
-- 一个移动优先的 Copilot Web 界面
-- 一个运行在 Mac 本机的 repo-scoped bridge
-- 一套围绕工具、shell、路径、写入和 URL 的策略与审批模型
-- 一个把代理过程转成结构化状态的产品层，而不是终端镜像
+| 指标 | 数值 |
+|------|------|
+| Bridge 源码 | 33 文件，~8,000 行 |
+| Web 源码 | 30 文件，~4,000 行 |
+| 测试 | 26 文件，~4,500 行 |
+| 共享类型 | 528 行 |
+| API 路由 | 26（17 POST / 8 GET / 1 WS） |
+| Web 组件 | 28 |
 
-## Joudo 不是什么
+---
 
-- 远程桌面
-- 终端转发器
-- 依赖 TUI 抓取或 OCR 的 CLI 包装器
-- 默认给 Copilot 开大权限的 `--allow-all` 壳
+## 架构
 
-## 当前已经完成的能力
-
-### 真实会话
-
-- 启动真实 Copilot 会话
-- 发送 prompt
-- 获取结构化 session snapshot
-- 保存 repo-scoped 历史会话与 snapshot
-- 对历史会话执行 best-effort attach 或 history-only 恢复
-
-### 策略与审批
-
-- 运行时执行 repo policy 判定
-- 支持三态审批：拒绝、允许本次、允许并加入 policy
-- 支持把审批结果写回 allowlist
-- 审批语义进入 timeline、summary、activity 和审计记录
-
-### Policy 写回
-
-- shell 审批可写入 `allow_shell`
-- read 审批可写入 `allowed_paths`
-- 受控 write 审批可写入 `allowed_write_paths`
-
-当前 write 持久化是窄权限模型，不会把一次写入审批升级成全局 `allow_tools: write`。
-
-### 结构化 UI
-
-当前 Web UI 已包含：
-
-- 仓库列表
-- Prompt 面板
-- 审批面板
-- Repo Policy 面板
-- Summary
-- Timeline
-- Activity
-- Session History
-- Error Panel
-- live policy 回归结果展示
-
-### 恢复与回退判断
-
-- repo-scoped 历史索引与 snapshot 持久化
-- history-only 恢复
-- best-effort attach
-- 基于 tracked scope、watcher 和 write journal 的上一轮回退判断
-
-## 当前边界
-
-- 当前不是最终安装包，而是开发态 bridge + web 组合
-- 当前 rollback 只支持“上一轮整体回退”，不是任意 turn rewind
-- 当前恢复优先保证事实可解释，不保证强一致继续执行
-- 当前 policy 管理主要支持新增与展示，还没有完整的删除与回收入口
-
-## 快速开始
-
-### 前置条件
-
-- macOS 本机可运行 GitHub Copilot CLI
-- 已安装 Node.js、Corepack 和 `pnpm`
-- Copilot CLI 已可登录
-
-以上前置条件针对开发环境成立。
-
-打包后的 desktop `.app` 现在会随包携带受控 Node runtime，正常使用不再依赖宿主机预装 Node；但本仓库里执行构建和打包仍然需要本机有 Node/Corepack/pnpm。
-
-### 安装依赖
-
-```bash
-corepack pnpm install
+```
+┌──────────────────────────────────────────────┐
+│  macOS Desktop (Tauri 2)                     │
+│  ┌─────────────┐  ┌───────────────────────┐  │
+│  │ Control Panel│  │ Bundled Node Runtime  │  │
+│  └─────────────┘  └───────────────────────┘  │
+│         │                    │                │
+│         ▼                    ▼                │
+│  ┌────────────────────────────────────────┐  │
+│  │  Bridge (Fastify 5, port 8787)        │  │
+│  │  ┌──────────┐ ┌────────┐ ┌─────────┐  │  │
+│  │  │ Session  │ │ Policy │ │  Auth   │  │  │
+│  │  │ State    │ │ Engine │ │ (TOTP)  │  │  │
+│  │  └──────────┘ └────────┘ └─────────┘  │  │
+│  │         │                              │  │
+│  │         ▼                              │  │
+│  │  ┌──────────────────┐                  │  │
+│  │  │ @github/copilot  │                  │  │
+│  │  │    SDK 0.2.0     │                  │  │
+│  │  └──────────────────┘                  │  │
+│  └────────────────────────────────────────┘  │
+└──────────────────────────────────────────────┘
+         ▲ HTTP + WebSocket (LAN)
+         │
+┌────────┴────────┐
+│  Mobile Web UI  │
+│  (React 19)     │
+│  Any browser    │
+└─────────────────┘
 ```
 
-如果依赖安装遇到网络问题：
+**关键设计决策**：
 
-```bash
-source ~/.zshrc
-proxyon
-corepack pnpm install
-```
+- Transport / Policy / Session 三层分离
+- 会话状态 repo-scoped，不用用户 home 目录
+- Bridge 状态拆分为 18 个聚焦模块，而非单一大文件
+- 移动优先 Web 而非原生 App — 任何手机浏览器通过 LAN 访问
+- 纯 LAN 直连，不经云端中转
 
-### 启动开发环境
-
-启动 bridge 和 web：
-
-```bash
-corepack pnpm dev
-```
-
-也可以分别启动：
-
-```bash
-corepack pnpm dev:bridge
-corepack pnpm dev:web
-```
-
-默认地址：
-
-- Web: `http://localhost:5173`
-- Bridge: `http://localhost:8787`
-
-### 登录 Copilot CLI
-
-如果网页显示未登录，在宿主机终端执行：
-
-```bash
-copilot login
-```
-
-完成授权后，回到网页点击“重新检查登录状态”。
-
-### 切换模型
-
-开发阶段默认模型是 `gpt-5-mini`。
-
-如果要切换模型，可在启动 bridge 前设置：
-
-```bash
-JOUDO_MODEL=gpt-5.4 corepack pnpm --filter @joudo/bridge dev
-```
-
-## 推荐体验路径
-
-1. 打开 Web UI。
-2. 选择一个受信任仓库。
-3. 查看 Repo Context 和 Repo Policy 面板。
-4. 发送一条会触发真实权限请求的 prompt。
-5. 在审批区选择“拒绝”“允许本次”或“允许并加入 policy”。
-6. 查看 Summary、Timeline、Activity 和 Session History。
-
-## Policy 与验证
-
-推荐起始模板：
-
-- [docs/examples/joudo-policy.recommended.yml](docs/examples/joudo-policy.recommended.yml)
-
-推荐将模板复制到目标仓库：
-
-- `.github/joudo-policy.yml`
-
-运行 live policy 回归：
-
-```bash
-corepack pnpm validate:policy-live
-```
-
-可选环境变量：
-
-- `JOUDO_BRIDGE_URL`：覆盖默认 bridge 地址
-- `JOUDO_VALIDATE_REPO`：指定回归验证仓库
-
-## 常用开发命令
-
-```bash
-corepack pnpm typecheck
-corepack pnpm --filter @joudo/bridge test
-corepack pnpm --filter @joudo/web test
-corepack pnpm build
-corepack pnpm build:desktop
-```
-
-## Desktop 打包
-
-当前仓库已经把默认 desktop 打包路径收敛为稳定 `.app`：
-
-```bash
-corepack pnpm build:desktop
-```
-
-默认产物位置：
-
-- `apps/desktop/src-tauri/target/release/bundle/macos/Joudo.app`
-
-当前 `.app` 会在打包阶段自动执行 `pnpm prepare:bundle-runtime`，把 bridge 运行依赖、bridge/web 构建产物和固定 Node runtime 一起放进 app resources。
-
-因此 packaged desktop 启动 bridge 时会优先且只使用 app 内自带的 Node，不会再去抢宿主机 Node。
-
-如果要回归验证 packaged `.app` 的桌面管理链路，可以直接运行：
-
-```bash
-corepack pnpm validate:desktop:packaged
-```
-
-这个检查会实际启动 `Joudo.app`，验证 bridge 自动拉起、TOTP 重绑与重新认证、临时 repo 初始化、会话历史清空，以及 packaged app 重启后 bridge/TOTP 是否仍正常工作。
-
-如果要继续尝试 `.dmg` 安装包，可显式执行：
-
-```bash
-corepack pnpm build:desktop:dmg
-```
-
-当前 `.dmg` 生成已经切换到更简单的 `hdiutil create -srcfolder Joudo.app` 路径，避开 Tauri create-dmg 辅助脚本在这台 Ventura 开发机上的临时磁盘镜像卸载失败问题。
-
-默认 `.dmg` 产物位置：
-
-- `apps/desktop/src-tauri/target/release/bundle/dmg/Joudo_0.1.0_x64.dmg`
+---
 
 ## 仓库结构
 
-- `apps/bridge`: bridge 控制平面，负责会话、权限、恢复、持久化和审计
-- `apps/web`: 移动优先 Web UI
-- `packages/shared`: 前后端共享协议类型
-- `docs`: 当前事实文档
+```
+joudo/
+├── apps/
+│   ├── bridge/      # Fastify 后端 — 会话、策略、审批、持久化
+│   ├── web/         # React 移动优先 Web UI
+│   └── desktop/     # Tauri v2 macOS 桌面壳
+├── packages/
+│   └── shared/      # 零运行时共享 TypeScript 类型
+├── scripts/         # 开发/运维脚本
+├── docs/            # 项目文档
+└── .github/         # CI/CD + Copilot 指令文件
+```
 
-如果要从代码入口阅读，推荐顺序是：
+**代码阅读推荐顺序**：
 
-1. `apps/bridge/src/index.ts`
-2. `apps/bridge/src/mvp-state.ts`
-3. `apps/bridge/src/state/session-orchestration.ts`
-4. `apps/web/src/hooks/useBridgeApp.ts`
-5. `docs/implementation-notes.md`
+1. `apps/bridge/src/index.ts` — 入口与路由注册
+2. `apps/bridge/src/mvp-state.ts` — 核心状态机
+3. `apps/bridge/src/state/session-orchestration.ts` — 会话编排
+4. `apps/web/src/hooks/useBridgeApp.ts` — 前端状态管理
+5. `packages/shared/src/index.ts` — 类型定义
 
-## 文档地图
+---
 
-- [docs/current-status.md](docs/current-status.md): 当前产品状态与能力评估
-- [docs/iteration-plan.md](docs/iteration-plan.md): 迭代计划与人工回归清单
-- [docs/policy-guide.md](docs/policy-guide.md): policy 使用指南
-- [docs/quickstart.md](docs/quickstart.md): 快速上手（开发环境 + 测试版安装）
-- [docs/examples/joudo-policy.recommended.yml](docs/examples/joudo-policy.recommended.yml): 推荐 policy 模板
+## 技术栈
 
-## 当前最值得关注的下一步
+| 层 | 技术 |
+|----|------|
+| 后端 | TypeScript, Fastify 5, NodeNext |
+| 前端 | TypeScript, React 19, Vite |
+| 桌面 | Rust + TypeScript, Tauri 2 |
+| 类型 | TypeScript 5.8+ strict mode |
+| 测试 | node:test + node:assert (Bridge), Vitest + Testing Library (Web) |
+| CI | GitHub Actions, pnpm 10.6 via corepack |
+| SDK | @github/copilot-sdk 0.2.0, @github/copilot 1.0.10 |
 
-当前最缺的不是新的执行通道，而是 policy 治理闭环和分发信任链。
+---
 
-详见 [docs/iteration-plan.md](docs/iteration-plan.md)。
+## 快速开始
+
+```bash
+# 安装依赖
+corepack pnpm install
+
+# 启动开发环境（bridge + web）
+corepack pnpm dev
+
+# 类型检查
+corepack pnpm typecheck
+
+# 运行测试
+corepack pnpm --filter @joudo/bridge test
+corepack pnpm --filter @joudo/web test
+
+# 构建 desktop app
+corepack pnpm build:desktop
+```
+
+默认地址：Web `http://localhost:5173`，Bridge `http://localhost:8787`
+
+详见 [docs/quickstart.md](docs/quickstart.md)。
+
+---
+
+## 为什么存档
+
+2026 年 4 月 13 日，GitHub 发布了 `copilot --remote`：
+
+- CLI 会话实时流式传输到 GitHub 服务器
+- Web 和 Mobile 远程发送 prompt、审批权限、切换模式
+- QR 码扫描连接、session resume、keep-alive
+- 原生 GitHub Mobile app 支持
+
+这覆盖了 Joudo 的核心价值主张（手机远程操控 CLI 会话）。
+
+### Joudo 仍有但官方没有的
+
+| 能力 | 说明 | 实际意义 |
+|------|------|----------|
+| 不要求 GitHub 仓库 | 任何本地 git repo 可用 | GitHub 已表示"正在扩展" |
+| 纯 LAN、无需互联网 | 不经 GitHub 服务器中转 | LLM 本身需要联网，场景极窄 |
+| Policy 持久化 | YAML allowlist 写回 | 作者自己都用 bypass 模式 |
+| Audit trail + rollback | 审计日志 + 上一轮回退 | 无实际用户验证 |
+
+差异点要么是临时的、要么是伪需求。详见 [.ai/decisions/001-project-archive.md](.ai/decisions/001-project-archive.md)。
+
+### 验证了什么
+
+- ✅ 产品直觉正确 — 独立走到了和 GitHub 官方相同的产品形态
+- ✅ 架构判断正确 — transport/policy/session 分离、repo-scoped state、mobile-first web
+- ✅ 工程可行性 — solo 11 天从零到打包分发的 macOS app + 完整 CI/CD
+
+### 教训
+
+- 在构建治理层之前先验证是否有人需要治理
+- 平台 wrapper 的生命周期以月计，不以年计
+- 自己的使用模式是最早的需求信号 — bypass 模式应该是个警告
+
+---
+
+## 文档
+
+- [docs/current-status.md](docs/current-status.md) — 最终产品状态
+- [docs/iteration-plan.md](docs/iteration-plan.md) — 迭代计划（冻结）
+- [docs/policy-guide.md](docs/policy-guide.md) — Policy 使用指南
+- [docs/quickstart.md](docs/quickstart.md) — 快速上手
+- [docs/code_guide/](docs/code_guide/) — 代码导读（7 篇）
+- [.ai/decisions/001-project-archive.md](.ai/decisions/001-project-archive.md) — 存档决策记录
+
+## License
+
+MIT
